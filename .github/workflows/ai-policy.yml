@@ -20,7 +20,10 @@ jobs:
   check:
     name: Check
     # for issues with an author who has not contributed before
+    # SearXNG's AI policy check: only for the upstream project, not for forks
+    # like TorXNG
     if: >-
+      github.repository_owner == 'searxng' &&
       github.event.sender.type != 'Bot' &&
       contains(fromJSON('["NONE","FIRST_TIMER","FIRST_TIME_CONTRIBUTOR"]'),
                github.event.issue.author_association ||

@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Questions & Answers (Q&A)
+  - name: TorXNG documentation
+    url: https://github.com/KaiBelmo/torxng/blob/master/torxng/README.md
+    about: How TorXNG works, how to run it, known limitations
+  - name: Upstream SearXNG questions
     url: https://github.com/searxng/searxng/discussions/categories/q-a
-    about: Ask questions and find answers
+    about: Questions about SearXNG itself (not specific to TorXNG)

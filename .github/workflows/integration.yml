@@ -54,6 +54,21 @@ jobs:
       - name: Setup venv
         run: make V=1 install
 
+      # TorXNG is Tor-only: the robot tests start the web app, which refuses to
+      # run without a Tor SOCKS proxy (default socks5h://127.0.0.1:9050)
+      - name: Start Tor
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tor
+          sudo systemctl start tor || sudo service tor start
+          for i in $(seq 36); do
+            if curl -sf --socks5-hostname 127.0.0.1:9050 https://check.torproject.org/api/ip \
+                | grep -q '"IsTor":true'; then exit 0; fi
+            sleep 5
+          done
+          echo 'Tor did not bootstrap within 3 minutes' >&2
+          exit 1
+
       - name: Run tests
         run: make V=1 ci.test
 

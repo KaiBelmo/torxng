@@ -1,62 +1,87 @@
 .. SPDX-License-Identifier: AGPL-3.0-or-later
 
-.. _metasearch engine: https://en.wikipedia.org/wiki/Metasearch_engine
-.. _Installation guide: https://docs.searxng.org/admin/installation.html
-.. _Configuration guide: https://docs.searxng.org/admin/settings/index.html
-.. _CONTRIBUTING: https://github.com/searxng/searxng/blob/master/CONTRIBUTING.rst
-.. _LICENSE: https://github.com/searxng/searxng/blob/master/LICENSE
+======
+TorXNG
+======
 
-.. figure:: https://raw.githubusercontent.com/searxng/searxng/master/client/simple/src/brand/searxng.svg
-   :target: https://searxng.org
-   :alt: SearXNG
-   :width: 512px
+TorXNG is a lightweight, hardened metasearch engine that sends **every**
+request through the `Tor network`_.  It asks many search engines at once,
+without tracking or profiling its users, and the search engines only ever see
+Tor exit relays, never the server that runs TorXNG.
+
+TorXNG is a fork of SearXNG_.
+
+.. _Tor network: https://www.torproject.org/
+.. _SearXNG: https://github.com/searxng/searxng
+.. _torxng/README.md: torxng/README.md
+.. _torxng/tests/README.md: torxng/tests/README.md
+.. _SearXNG documentation: https://docs.searxng.org/admin/settings/index.html
+.. _LICENSE: LICENSE
 
 
-SearXNG is a `metasearch engine`_. Users are neither tracked nor profiled.
+Based on SearXNG
+================
 
-.. image:: https://img.shields.io/badge/organization-3050ff?style=flat-square&logo=searxng&logoColor=fff&cacheSeconds=86400
-   :target: https://github.com/searxng
-   :alt: Organization
+TorXNG is based on SearXNG, upstream commit ``12f8b6515`` (September 2026), and
+keeps its complete history and authors.  Since 2026-09-26 it has been modified
+to run only through Tor, to be lighter and to be hardened.  The changes are
+listed in section 12 of `torxng/README.md`_.  All credit for the metasearch
+engine itself goes to the SearXNG contributors.
 
-.. image:: https://img.shields.io/badge/documentation-3050ff?style=flat-square&logo=readthedocs&logoColor=fff&cacheSeconds=86400
-   :target: https://docs.searxng.org
-   :alt: Documentation
 
-.. image:: https://img.shields.io/github/license/searxng/searxng?style=flat-square&label=license&color=3050ff&cacheSeconds=86400
-   :target: https://github.com/searxng/searxng/blob/master/LICENSE
-   :alt: License
+What is different
+=================
 
-.. image:: https://img.shields.io/github/commit-activity/y/searxng/searxng/master?style=flat-square&label=commits&color=3050ff&cacheSeconds=3600
-   :target: https://github.com/searxng/searxng/commits/master/
-   :alt: Commits
+- **Tor-only.**  TorXNG refuses to start without a Tor SOCKS proxy
+  (``socks5h://``, default ``127.0.0.1:9050``, set another one with
+  ``SEARXNG_TOR_PROXY``).  There is no setting to turn Tor off, and nothing can
+  be sent before the network layer is set up.
+- **Isolated circuits.**  Requests are spread over several Tor circuits with
+  different exit relays; search ``circuit`` to see them.
+- **Onion service.**  The Docker stack also publishes TorXNG as a Tor v3 onion
+  service.
+- **Hardened.**  Read-only, non-root containers without capabilities, a strict
+  Content-Security-Policy, rate limits, and no search terms in the logs.
+- **Light.**  About 160 MiB of memory for the whole stack including Tor, and a
+  small set of search engines that work over Tor.
 
-.. image:: https://img.shields.io/weblate/progress/searxng?server=https%3A%2F%2Ftranslate.codeberg.org&style=flat-square&label=translated&color=3050ff&cacheSeconds=86400
-   :target: https://translate.codeberg.org/projects/searxng/
-   :alt: Translated
 
-Setup
-=====
+Quick start
+===========
 
-To install SearXNG, see `Installation guide`_.
+With Docker (recommended; see section 7 of `torxng/README.md`_ for the
+secrets that have to be created first):
 
-To fine-tune SearXNG, see `Configuration guide`_.
+.. code:: sh
 
-Further information on *how-to* can be found `here <https://docs.searxng.org/admin/index.html>`_.
+   cd torxng
+   cp .env.example .env
+   docker compose up -d --build --wait
 
-Connect
-=======
+Then open http://127.0.0.1:8080/ or the onion address shown by
+``docker compose exec tor cat /var/lib/tor/searxng/hostname`` in Tor Browser.
 
-If you have questions or want to connect with others in the community:
+Without Docker, ``make run`` needs a running Tor, either the Tor daemon on
+``127.0.0.1:9050`` or Tor Browser:
 
-- `#searxng:matrix.org <https://matrix.to/#/#searxng:matrix.org>`_
+.. code:: sh
 
-Contributing
-============
+   SEARXNG_TOR_PROXY=socks5h://127.0.0.1:9150 make run
 
-See CONTRIBUTING_ for more details.
+
+Documentation
+=============
+
+- `torxng/README.md`_: architecture, the Tor-only guarantee, hardening,
+  cryptographic background, measurements and limitations.
+- `torxng/tests/README.md`_: the edge-case and security test suite.
+- The `SearXNG documentation`_ remains the reference for general settings.
+
 
 License
 =======
 
-This project is licensed under the GNU Affero General Public License (AGPL-3.0).
-See LICENSE_ for more details.
+TorXNG is licensed under the GNU Affero General Public License (AGPL-3.0), like
+SearXNG; see LICENSE_.  If you run TorXNG as a service for other people, they
+must be able to get the source code of the version you run.  The "Source code"
+link in the footer of every page points to this repository.
