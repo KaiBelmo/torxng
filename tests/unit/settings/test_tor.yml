@@ -1,4 +1,6 @@
-# This SearXNG setup is used in unit tests
+# This SearXNG setup is used in unit tests which need the Tor circuits and the
+# Tor control port, see SearxTorTestCase in tests/__init__.py (the check of the
+# Tor proxy is patched, no request is sent to the Tor network).
 
 use_default_settings:
 
@@ -16,11 +18,15 @@ server:
 
 outgoing:
 
-  # Tor-only build: the tests don't send requests, the check of the Tor proxy
-  # is patched (see SearxTestCase in tests/__init__.py)
   using_tor_proxy: true
   proxies:
     "all://": "socks5h://127.0.0.1:9050"
+  tor_circuits: 3
+  extra_proxy_timeout: 5.0
+  tor_control:
+    host: 127.0.0.1
+    port: 9051
+    password: test
 
 engines:
 
@@ -29,10 +35,3 @@ engines:
     categories: ["general"]
     shortcut: "gd"
     timeout: 3
-
-  - name: dummy private engine
-    engine: demo_offline
-    categories: ["general"]
-    shortcut: "gdp"
-    timeout: 3
-    tokens: ["my-token"]

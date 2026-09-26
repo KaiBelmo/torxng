@@ -45,6 +45,7 @@ Output file: :origin:`searx/data/osm_keys_tags` (:origin:`CI Update data ...
 import json
 import collections
 
+from searx import network
 from searx.network import set_timeout_for_thread
 from searx.engines import wikidata, set_loggers
 from searx.sxng_locales import sxng_locales
@@ -204,7 +205,10 @@ def optimize_keys(data):
     return data
 
 
-if __name__ == '__main__':
+def main():
+    # Tor-only build: initialize the network (Tor) and check it
+    network.initialize()
+    network.check_network_configuration()
     set_timeout_for_thread(60)
     result = {
         'keys': optimize_keys(get_keys()),
@@ -212,3 +216,7 @@ if __name__ == '__main__':
     }
     with DATA_FILE.open('w', encoding="utf8") as f:
         json.dump(result, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+
+if __name__ == '__main__':
+    main()

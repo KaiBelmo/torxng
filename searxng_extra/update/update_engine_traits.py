@@ -105,6 +105,9 @@ def cli(engines: t.Annotated[list[str] | None, typer.Argument()] = None):
             engines_cfg.append(eng_data)
 
     load_engines(engines_cfg)
+    # Tor-only build: initialize the network (Tor) and check it
+    network.initialize(engines_cfg, settings["outgoing"])
+    network.check_network_configuration()
     traits_map: EngineTraitsMap = fetch_traits_map()
     if engines:
         _map = EngineTraitsMap.from_data()

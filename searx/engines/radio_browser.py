@@ -4,7 +4,22 @@
 .. _Advanced station search API:
    https://de1.api.radio-browser.info/#Advanced_station_search
 
+Upstream resolves the list of the API servers by DNS lookups of
+``all.api.radio-browser.info`` with the resolver of the system.  This fork is
+Tor-only (:ref:`using_tor_proxy <settings outgoing>`), a local DNS lookup would
+bypass Tor: the engine needs a static list of servers (:py:obj:`servers`),
+otherwise it is not loaded.
+
+.. code:: yaml
+
+   - name: radio browser
+     engine: radio_browser
+     servers:
+       - https://de1.api.radio-browser.info
+
 """
+
+import typing as t
 
 import os
 import random
@@ -14,6 +29,7 @@ from urllib.parse import urlencode
 import babel
 from flask_babel import gettext
 
+from searx import settings
 from searx.enginelib import EngineCache
 from searx.enginelib.traits import EngineTraits
 from searx.locales import language_tag
@@ -53,9 +69,32 @@ none filters are applied. Valid filters are:
 
 """
 
+servers: list[str] = []
+"""A static list of API servers (e.g. ``https://de1.api.radio-browser.info``).
+If empty, the servers are resolved by DNS lookups with the resolver of the
+system, which is not possible when Tor is used."""
+
 CACHE: EngineCache
 """Persistent (SQLite) key/value cache that deletes its values after ``expire``
 seconds."""
+
+
+def _using_tor_proxy() -> bool:
+    # ``using_tor_proxy`` is an engine attribute (see searx.engines.using_tor_proxy)
+    return bool(settings["outgoing"]["using_tor_proxy"] or globals().get("using_tor_proxy"))
+
+
+def setup(_engine_settings: dict[str, t.Any]) -> bool:
+    """With Tor, the engine is only loaded if there is a static list of
+    :py:obj:`servers` (no local DNS lookups)."""
+    if _using_tor_proxy() and not servers:
+        logger.error(
+            "the engine uses Tor, but the list of servers can only be resolved with the"
+            " local DNS resolver (bypasses Tor): set 'servers' in the engine settings,"
+            " the engine is disabled"
+        )
+        return False
+    return True
 
 
 def init(_):
@@ -78,9 +117,16 @@ def init(_):
 
 def server_list() -> list[str]:
 
-    servers = CACHE.get("servers", [])
     if servers:
-        return servers
+        return list(servers)
+
+    if _using_tor_proxy():
+        # never resolve the servers with the local DNS resolver (bypasses Tor)
+        raise RuntimeError("radio_browser: no static list of servers, DNS lookups would bypass Tor")
+
+    srv_list: list[str] = CACHE.get("servers", [])
+    if srv_list:
+        return srv_list
 
     # hint: can take up to 40sec!
     ips = socket.getaddrinfo("all.api.radio-browser.info", 80, 0, 0, socket.IPPROTO_TCP)
@@ -92,24 +138,24 @@ def server_list() -> list[str]:
             # https://github.com/searxng/searxng/issues/5439
             continue
         srv = "https://" + url
-        if srv not in servers:
-            servers.append(srv)
+        if srv not in srv_list:
+            srv_list.append(srv)
 
     # update server list once in 24h
-    CACHE.set(key="servers", value=servers, expire=60 * 60 * 24)
+    CACHE.set(key="servers", value=srv_list, expire=60 * 60 * 24)
 
-    return servers
+    return srv_list
 
 
 def request(query, params):
 
-    servers = server_list()
-    if not servers:
+    srv_list = server_list()
+    if not srv_list:
         logger.error("Fetched server list is empty!")
         params["url"] = None
         return
 
-    server = random.choice(servers)
+    server = random.choice(srv_list)
 
     args = {
         "name": query,

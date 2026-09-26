@@ -3,6 +3,11 @@
 user searches for ``tor-check``.  It fetches the tor exit node list from
 :py:obj:`url_exit_list` and parses all the IPs into a list, then checks if the
 user's IP address is in it.
+
+If the request reaches SearXNG from a private, loopback, link-local or
+unspecified address (e.g. SearXNG is served as a Tor onion service or behind a
+reverse proxy that does not pass the client IP), the check is not applicable:
+the plugin says so and does not download the exit list.
 """
 
 from ipaddress import ip_address
@@ -55,6 +60,18 @@ class SXNGPlugin(Plugin):
 
         if search.search_query.query.lower() in self.keywords:
 
+            real_ip = ip_address(address=str(request.remote_addr))
+
+            # Requests from an onion service or a local proxy do not have the
+            # IP of the client, comparing with the exit-nodes is pointless.
+            if real_ip.is_private or real_ip.is_loopback or real_ip.is_link_local or real_ip.is_unspecified:
+                msg = gettext(
+                    "The request reached SearXNG from a local or proxied address,"
+                    " the Tor exit-node check is not applicable:"
+                )
+                results.add(results.types.Answer(answer=f"{msg} {real_ip.compressed}"))
+                return results
+
             # Request the list of tor exit nodes.
             try:
                 resp = get(url_exit_list)
@@ -66,14 +83,12 @@ class SXNGPlugin(Plugin):
                 results.add(results.types.Answer(answer=f"{msg} {url_exit_list}"))
                 return results
 
-            real_ip = ip_address(address=str(request.remote_addr)).compressed
-
-            if real_ip in node_list:
+            if real_ip.compressed in node_list:
                 msg = gettext("You are using Tor and it looks like you have the external IP address")
-                results.add(results.types.Answer(answer=f"{msg} {real_ip}"))
+                results.add(results.types.Answer(answer=f"{msg} {real_ip.compressed}"))
 
             else:
                 msg = gettext("You are not using Tor and you have the external IP address")
-                results.add(results.types.Answer(answer=f"{msg} {real_ip}"))
+                results.add(results.types.Answer(answer=f"{msg} {real_ip.compressed}"))
 
         return results

@@ -9,6 +9,7 @@ Output files: (:origin:`CI Update data <.github/workflows/data-update.yml>`).
 
 import json
 
+from searx import network
 from searx.engines import wikidata, set_loggers
 from searx.data import data_dir
 from searx.wikidata_properties import fetch_properties
@@ -19,7 +20,10 @@ PROPERTIES_DATA_FILE = data_dir / 'wikidata_properties.json'
 set_loggers(wikidata, 'wikidata')
 
 
-if __name__ == '__main__':
+def main():
+    # Tor-only build: initialize the network (Tor) and check it
+    network.initialize()
+    network.check_network_configuration()
     units = fetch_units()
     with UNITS_DATA_FILE.open('w', encoding="utf8") as f:
         json.dump(units, f, indent=4, sort_keys=True, ensure_ascii=False)
@@ -27,3 +31,7 @@ if __name__ == '__main__':
     properties = fetch_properties(units)
     with PROPERTIES_DATA_FILE.open('w', encoding="utf8") as f:
         json.dump(properties, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+
+if __name__ == '__main__':
+    main()

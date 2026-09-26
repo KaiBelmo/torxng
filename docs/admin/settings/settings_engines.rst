@@ -61,16 +61,14 @@ engine is shown.  Most of the options have a default value or even are optional.
      enable_http3: false
      retries: 1
      max_connections: 100
-     using_tor_proxy: false
-     proxies:
+     proxies:  # Tor-only build: socks5h:// proxies only
        http:
-         - http://proxy1:8080
-         - http://proxy2:8080
+         - socks5h://tor1:9050
+         - socks5h://tor2:9050
        https:
-         - http://proxy1:8080
-         - http://proxy2:8080
-         - socks5://user:password@proxy3:1080
-         - socks5h://user:password@proxy4:1080
+         - socks5h://tor1:9050
+         - socks5h://tor2:9050
+         - socks5h://user:password@tor3:9050
 
      # other network settings
      enable_http: false
@@ -182,11 +180,14 @@ engine is shown.  Most of the options have a default value or even are optional.
   * ``[403, 429]``: on HTTP status code 403 and 429.
 
 ``proxies`` :
-  Overwrites proxy settings from :ref:`settings outgoing`.
+  Overwrites proxy settings from :ref:`settings outgoing`.  Tor-only build: only
+  ``socks5h://`` proxies are accepted (for each scheme the engine may use),
+  otherwise SearXNG refuses to start, see :ref:`settings outgoing tor-only`.
 
 ``using_tor_proxy`` :
-  Using tor proxy (``true``) or not (``false``) for this engine.  The default is
-  taken from ``using_tor_proxy`` of the :ref:`settings outgoing`.
+  Tor-only build: every engine uses Tor, an engine cannot opt out
+  (``using_tor_proxy: false`` is ignored).  The ``extra_proxy_timeout`` of the
+  :ref:`settings outgoing` is added to the ``timeout`` of every engine.
 
 .. _Pool limit configuration: https://curl-cffi.readthedocs.io/en/latest/api.html#sessions
 

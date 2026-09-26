@@ -96,6 +96,29 @@ The built-in plugins are all located in the namespace `searx.plugins`.
       searx.plugins.tor_check.SXNGPlugin:
         active: false
 
+Plugins that are not in this list have to be registered explicitly, e.g. the
+:ref:`tor circuit plugin` (``searx.plugins.tor_circuit.SXNGPlugin``) for
+instances that send their requests over Tor.  Since a ``plugins:`` section in
+``/etc/searxng/settings.yml`` replaces the list above, the plugins from the list
+that should stay available have to be listed as well:
+
+.. code:: yaml
+
+    use_default_settings: true
+
+    plugins:
+
+      searx.plugins.calculator.SXNGPlugin:
+        active: true
+
+      # .. the other plugins from the list above ..
+
+      searx.plugins.tor_circuit.SXNGPlugin:
+        active: false
+
+Once a plugin is registered, every user can enable it in the preferences,
+``active`` only sets the default.
+
 
 .. _settings external_plugins:
 

@@ -1371,10 +1371,13 @@ def init():
     # init application
     locales_initialize()
     valkey_initialize()
-    searx.plugins.initialize(app)
 
+    # The network has to be initialized before the plugins: the HTTP requests
+    # sent in Plugin.init (e.g. the ClearURLs rules of the tracker_url_remover)
+    # have to use the configured proxies (Tor).
     metrics: bool = get_setting("general.enable_metrics")  # type: ignore
     searx.search.initialize(check_network=True, enable_metrics=metrics)
+    searx.plugins.initialize(app)
 
     limiter.initialize(app, settings)
 

@@ -234,9 +234,13 @@ def update_engine_attributes(engine: "Engine | types.ModuleType", engine_data: d
 
 
 def update_attributes_for_tor(engine: "Engine | types.ModuleType"):
-    if using_tor_proxy(engine) and hasattr(engine, 'onion_url'):
+    """If the engine uses Tor, use its ``onion_url`` (if any) and add
+    ``outgoing.extra_proxy_timeout`` to its timeout."""
+    if not using_tor_proxy(engine):
+        return
+    if hasattr(engine, 'onion_url'):
         engine.search_url = engine.onion_url + getattr(engine, 'search_path', '')  # type: ignore
-        engine.timeout += settings['outgoing'].get('extra_proxy_timeout', 0)  # type: ignore
+    engine.timeout += settings['outgoing'].get('extra_proxy_timeout', 0)  # type: ignore
 
 
 def is_missing_required_attributes(engine: "Engine | types.ModuleType"):

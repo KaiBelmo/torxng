@@ -248,7 +248,11 @@ The following environment variables can be configured:
 
 - ``$SEARXNG_*``: Controls the SearXNG configuration options, look out for
   environment ``$SEARXNG_*`` in :ref:`settings server`, :ref:`settings
-  general` and the :origin:`container/.env.example` template.
+  general`, :ref:`settings outgoing` and the :origin:`container/.env.example`
+  template.
+- ``$SEARXNG_TOR_PROXY``: Tor-only build, the ``socks5h://host:port`` URL of
+  the Tor SOCKS proxy (e.g. ``socks5h://tor:9050``, default
+  ``socks5h://127.0.0.1:9050``), see :ref:`settings outgoing tor-only`.
 - ``$GRANIAN_*``: Controls the :ref:`Granian server options <Granian configuration>`.
 - ``$FORCE_OWNERSHIP``: Ensures mounted volumes/files are owned by the
   ``searxng:searxng`` user (default: ``true``)

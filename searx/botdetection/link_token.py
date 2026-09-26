@@ -96,7 +96,12 @@ def ping(request: flask.Request, token: str):
     The expire time of this ping-key is :py:obj:`PING_LIVE_TIME`.
 
     """
-    valkey_client = valkeydb.get_valkey_client()
+    try:
+        valkey_client = valkeydb.get_valkey_client()
+    except ValueError:
+        # The URL is linked in every HTML page, also when the limiter is
+        # inactive / no valkey DB (see get_token): nothing to store.
+        return
     cfg = config.get_global_cfg()
 
     if not token_is_valid(token):

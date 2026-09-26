@@ -196,7 +196,8 @@ def get_website_description(url: str, lang1: str | None, lang2: str | None = Non
 
 def initialize():
     global IDS, LANGUAGES_SPARQL
-    searx.search.initialize()
+    # Tor-only build: check the network (Tor) before the first request
+    searx.search.initialize(check_network=True)
     wikipedia_engine = searx.engines.engines["wikipedia"]
 
     locale2lang = {"nl-BE": "nl"}

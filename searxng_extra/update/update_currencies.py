@@ -13,6 +13,7 @@ import re
 import unicodedata
 import json
 
+from searx import network
 from searx.locales import LOCALE_NAMES, locales_initialize
 from searx.engines import wikidata, set_loggers
 from searx.data.currencies import CurrenciesDB
@@ -130,6 +131,9 @@ def fetch_db():
 
 
 def main():
+    # Tor-only build: initialize the network (Tor) and check it
+    network.initialize()
+    network.check_network_configuration()
 
     db = fetch_db()
 

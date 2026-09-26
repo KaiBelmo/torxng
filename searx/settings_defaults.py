@@ -9,7 +9,9 @@ import errno
 import os
 import logging
 from base64 import b64decode
+from collections.abc import Iterator
 from os.path import dirname, abspath
+from urllib.parse import urlsplit
 
 import msgspec
 
@@ -45,6 +47,20 @@ STR_TO_BOOL = {
     'on': True,
 }
 _UNDEFINED = object()
+TOR_CIRCUITS_MAX = 32
+"""Maximum value of ``outgoing.tor_circuits``."""
+
+TOR_ONLY = 'Tor-only build'
+"""Prefix of the error messages of :py:obj:`apply_tor_only` and
+:py:obj:`check_tor_only`, this fork of SearXNG sends all requests over Tor."""
+
+DEFAULT_TOR_PROXY = 'socks5h://127.0.0.1:9050'
+"""The ``outgoing.proxies`` of :origin:`searx/settings.yml`: the SOCKS port of a
+local Tor daemon (the Tor Browser listens on port 9150)."""
+
+TOR_PROXY_ENV = 'SEARXNG_TOR_PROXY'
+"""Environment variable with a single ``socks5h://host:port`` URL, it replaces
+``outgoing.proxies`` by ``{'all://': <url>}``."""
 
 # This type definition for SettingsValue.type_definition is incomplete, but it
 # helps to significantly reduce the most common error messages regarding type
@@ -140,6 +156,29 @@ class SettingsBytesValue(SettingsValue):
         return super().__call__(value)
 
 
+class SettingsIntRangeValue(SettingsValue):
+    """An integer in the range ``min_value..max_value``, a string (e.g. a value
+    from the environment) is converted to an integer."""
+
+    def __init__(self, min_value: int, max_value: int, default: int = 0, environ_name: str | None = None):
+        super().__init__((int, str), default, environ_name)
+        self.min_value: int = min_value
+        self.max_value: int = max_value
+
+    @override
+    def __call__(self, value: t.Any) -> t.Any:
+        value = super().__call__(value)
+        if isinstance(value, bool):
+            raise ValueError(f'{value!r} is not an integer')
+        try:
+            value = int(value)
+        except ValueError:
+            raise ValueError(f'{value!r} is not an integer') from None
+        if not self.min_value <= value <= self.max_value:
+            raise ValueError(f'{value} is not in the range {self.min_value}..{self.max_value}')
+        return value
+
+
 def apply_schema(settings: dict[str, t.Any], schema: dict[str, t.Any], path_list: list[str]):
     error = False
     for key, value in schema.items():
@@ -178,6 +217,63 @@ def apply_schema(settings: dict[str, t.Any], schema: dict[str, t.Any], path_list
     if len(path_list) == 0 and error:
         raise ValueError("Invalid settings.yml")
     return error
+
+
+def _iter_proxy_urls(proxies: t.Any) -> Iterator[t.Any]:
+    """The URLs of an ``outgoing.proxies`` value (``str`` or ``{pattern: url |
+    [url, ..]}``), values of an unexpected type are returned as they are."""
+    if isinstance(proxies, dict):
+        for urls in t.cast(dict[str, t.Any], proxies).values():
+            if isinstance(urls, list):
+                yield from t.cast(list[t.Any], urls)
+            else:
+                yield urls
+    elif proxies:
+        yield proxies
+
+
+def check_tor_only(outgoing: dict[str, t.Any]) -> None:
+    """This fork of SearXNG is Tor-only, a :py:obj:`ValueError` (the message
+    starts with :py:obj:`TOR_ONLY`) is raised if
+
+    - ``outgoing.using_tor_proxy`` is not true or
+    - ``outgoing.proxies`` is empty or one of its URLs is not a ``socks5h://``
+      URL (the host names are resolved by Tor).
+
+    The networks check the other details (e.g. a proxy for each scheme), see
+    :py:obj:`searx.network.network.Network.check_tor_parameters`.
+    """
+    if outgoing.get('using_tor_proxy') is not True:
+        raise ValueError(f'{TOR_ONLY}: outgoing.using_tor_proxy must be true')
+    urls = list(_iter_proxy_urls(outgoing.get('proxies')))
+    if not urls or not all(isinstance(url, str) and url.startswith('socks5h://') for url in urls):
+        raise ValueError(f'{TOR_ONLY}: outgoing.proxies must be a socks5h:// Tor proxy (set {TOR_PROXY_ENV})')
+
+
+def apply_tor_only(settings: dict[str, t.Any]) -> None:
+    """Applies the environment variable :py:obj:`TOR_PROXY_ENV` to
+    ``outgoing.proxies`` and checks the result with :py:obj:`check_tor_only`.
+    Has to be called after :py:obj:`apply_schema` (``SEARXNG_USING_TOR_PROXY``
+    is applied by the schema).
+
+    A value of :py:obj:`TOR_PROXY_ENV` that is not a ``socks5h://host:port`` URL
+    raises a :py:obj:`ValueError`.
+    """
+    outgoing: dict[str, t.Any] = settings['outgoing']
+    tor_proxy = os.environ.get(TOR_PROXY_ENV)
+    if tor_proxy is not None:
+        try:
+            parts = urlsplit(tor_proxy)
+            scheme, host, port = parts.scheme, parts.hostname, parts.port
+        except ValueError:  # e.g. an invalid port or IPv6 address
+            scheme, host, port = '', None, None
+        # don't show the value in the error messages, it may contain credentials
+        if not tor_proxy.startswith('socks5h://'):
+            raise ValueError(f'{TOR_ONLY}: {TOR_PROXY_ENV} must be a socks5h:// URL, not a {scheme or "?"}:// URL')
+        if not host or not port:
+            raise ValueError(f'{TOR_ONLY}: {TOR_PROXY_ENV} must be a socks5h://host:port URL, host or port is missing')
+        outgoing['proxies'] = {'all://': tor_proxy}
+    check_tor_only(outgoing)
 
 
 SCHEMA: dict[str, t.Any] = {
@@ -260,9 +356,15 @@ SCHEMA: dict[str, t.Any] = {
         'retries': SettingsValue(int, 0),
         'proxies': SettingsValue((None, str, dict), None),
         'source_ips': SettingsValue((None, str, list), None),
-        # Tor configuration
-        'using_tor_proxy': SettingsValue(bool, False),
-        'extra_proxy_timeout': SettingsValue(int, 0),
+        # Tor configuration (Tor-only build: see apply_tor_only)
+        'using_tor_proxy': SettingsValue(bool, True, 'SEARXNG_USING_TOR_PROXY'),
+        'extra_proxy_timeout': SettingsValue(numbers.Real, 0),
+        'tor_circuits': SettingsIntRangeValue(0, TOR_CIRCUITS_MAX, 0, 'SEARXNG_TOR_CIRCUITS'),
+        'tor_control': {
+            'host': SettingsValue(str, '', 'SEARXNG_TOR_CONTROL_HOST'),
+            'port': SettingsValue((int, str), 9051, 'SEARXNG_TOR_CONTROL_PORT'),
+            'password': SettingsValue(str, '', 'SEARXNG_TOR_CONTROL_PASSWORD'),
+        },
         'networks': {},
     },
     'plugins': SettingsValue(dict, {}),

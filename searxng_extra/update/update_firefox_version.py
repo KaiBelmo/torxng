@@ -14,8 +14,8 @@ import re
 from urllib.parse import urlparse, urljoin
 from packaging.version import parse
 
-import requests
 from lxml import html
+from searx import network
 from searx.data import data_dir
 
 DATA_FILE = data_dir / 'useragents.json'
@@ -39,7 +39,8 @@ useragents = {
 
 
 def fetch_firefox_versions():
-    resp = requests.get(URL, timeout=2.0)
+    # Tor-only build: searx.network sends the request over Tor
+    resp = network.get(URL, timeout=30.0)
     if resp.status_code != 200:
         # pylint: disable=broad-exception-raised
         raise Exception("Error fetching firefox versions, HTTP code " + resp.status_code)  # type: ignore
@@ -75,7 +76,14 @@ def fetch_firefox_last_versions():
     return result
 
 
-if __name__ == '__main__':
+def main():
+    # Tor-only build: initialize the network (Tor) and check it
+    network.initialize()
+    network.check_network_configuration()
     useragents["versions"] = fetch_firefox_last_versions()
     with DATA_FILE.open('w', encoding='utf-8') as f:
         json.dump(useragents, f, indent=4, sort_keys=True, ensure_ascii=False)
+
+
+if __name__ == '__main__':
+    main()

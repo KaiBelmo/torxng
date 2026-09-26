@@ -37,13 +37,15 @@ def init_settings():
 
     # pylint: disable=import-outside-toplevel
     from searx import settings_loader
-    from searx.settings_defaults import SCHEMA, apply_schema
+    from searx.settings_defaults import SCHEMA, apply_schema, apply_tor_only
 
     global settings, sxng_debug  # pylint: disable=global-variable-not-assigned
 
     cfg, msg = settings_loader.load_settings(load_user_settings=True)
     cfg = cfg or {}
     apply_schema(cfg, SCHEMA, [])
+    # Tor-only build: SearXNG refuses to start without a Tor proxy
+    apply_tor_only(cfg)
 
     settings.clear()
     settings.update(cfg)

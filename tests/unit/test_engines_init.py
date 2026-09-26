@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # pylint: disable=missing-module-docstring,disable=missing-class-docstring,invalid-name
 
+import typing as t
+
+from mock import patch
+
 from searx import settings, engines
 from tests import SearxTestCase
 
@@ -18,21 +22,10 @@ class TestEnginesInit(SearxTestCase):
         self.assertIn('engine1', engines.engines)
         self.assertIn('engine2', engines.engines)
 
-    def test_initialize_engines_exclude_onions(self):
-        settings['outgoing']['using_tor_proxy'] = False
-        engine_list = [
-            {'engine': 'dummy', 'name': 'engine1', 'shortcut': 'e1', 'categories': 'general'},
-            {'engine': 'dummy', 'name': 'engine2', 'shortcut': 'e2', 'categories': 'onions'},
-        ]
-
-        engines.load_engines(engine_list)
-        self.assertEqual(len(engines.engines), 1)
-        self.assertIn('engine1', engines.engines)
-        self.assertNotIn('onions', engines.categories)
-
     def test_initialize_engines_include_onions(self):
-        settings['outgoing']['using_tor_proxy'] = True
-        settings['outgoing']['extra_proxy_timeout'] = 100.0
+        # Tor-only build: the onion engines are always loaded
+        self.assertIs(settings['outgoing']['using_tor_proxy'], True)
+        self.set_outgoing(extra_proxy_timeout=100.0)
         engine_list = [
             {
                 'engine': 'dummy',
@@ -53,8 +46,30 @@ class TestEnginesInit(SearxTestCase):
         self.assertIn('http://engine1.onion', engines.engines['engine1'].search_url)
         self.assertEqual(engines.engines['engine1'].timeout, 120.0)
 
+    def set_outgoing(self, **kwargs: t.Any):
+        patcher = patch.dict(settings['outgoing'], kwargs)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def load_engine_timeout(self, **engine_args: t.Any) -> float:
+        engine_list = [
+            {'engine': 'dummy', 'name': 'engine1', 'shortcut': 'e1', 'timeout': 20.0, **engine_args},
+        ]
+        engines.load_engines(engine_list)
+        return engines.engines['engine1'].timeout
+
+    def test_extra_proxy_timeout_tor(self):
+        # engines without onion_url get the extra_proxy_timeout as well
+        self.set_outgoing(extra_proxy_timeout=5.5)
+        self.assertEqual(self.load_engine_timeout(), 25.5)
+
+    def test_engine_opt_out(self):
+        # Tor-only build: an engine can't opt out of Tor
+        self.set_outgoing(extra_proxy_timeout=5.5)
+        self.assertEqual(self.load_engine_timeout(using_tor_proxy=False), 25.5)
+        self.assertIs(engines.using_tor_proxy(engines.engines['engine1']), True)
+
     def test_missing_name_field(self):
-        settings['outgoing']['using_tor_proxy'] = False
         engine_list = [
             {'engine': 'dummy', 'shortcut': 'e1', 'categories': 'general'},
         ]
@@ -64,7 +79,6 @@ class TestEnginesInit(SearxTestCase):
             self.assertEqual(cm.output[0], 'ERROR:searx.engines:An engine does not have a "name" field')
 
     def test_missing_engine_field(self):
-        settings['outgoing']['using_tor_proxy'] = False
         engine_list = [
             {'name': 'engine2', 'shortcut': 'e2', 'categories': 'onions'},
         ]

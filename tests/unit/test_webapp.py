@@ -3,9 +3,8 @@
 
 import json
 import babel
-from mock import Mock
+from mock import ANY, Mock, call, patch
 
-import searx.webapp
 import searx.search
 import searx.search.processors
 from searx.result_types._base import MainResult
@@ -242,3 +241,33 @@ class ViewsTestCase(SearxTestCase):  # pylint: disable=too-many-public-methods
         self.assertEqual(result.status_code, 200)
         json_result = result.get_json()
         self.assertTrue(json_result)
+
+
+class InitTestCase(SearxTestCase):
+
+    @patch('searx.webapp.limiter.initialize')
+    @patch('searx.webapp.valkey_initialize')
+    @patch('searx.webapp.locales_initialize')
+    @patch('searx.webapp.favicons.init')
+    @patch('searx.plugins.initialize')
+    @patch('searx.search.initialize')
+    def test_network_before_plugins(self, search_initialize: Mock, plugins_initialize: Mock, *_mocks: Mock):
+        # The HTTP requests of the plugins' init (e.g. the ClearURLs rules of
+        # the tracker_url_remover) have to use the configured proxies (Tor).
+        # (searx.webapp is imported by SearxTestCase.setUp: Tor-only build, the
+        # import checks the Tor proxy)
+        from searx import webapp  # pylint: disable=import-outside-toplevel
+
+        manager = Mock()
+        manager.attach_mock(search_initialize, 'search_initialize')
+        manager.attach_mock(plugins_initialize, 'plugins_initialize')
+
+        webapp.init()
+
+        self.assertEqual(
+            manager.mock_calls,
+            [
+                call.search_initialize(check_network=True, enable_metrics=ANY),
+                call.plugins_initialize(webapp.app),
+            ],
+        )

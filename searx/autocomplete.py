@@ -28,20 +28,25 @@ if t.TYPE_CHECKING:
     from searx.extended_types import SXNG_Response
 
 
-def update_kwargs(**kwargs) -> None:  # type: ignore
+def update_kwargs(kwargs: dict[str, t.Any]) -> dict[str, t.Any]:
+    """Set the default ``timeout`` (``outgoing.request_timeout``, plus
+    ``outgoing.extra_proxy_timeout`` when Tor is used) and
+    ``raise_for_httperror`` of an autocompleter request."""
     if 'timeout' not in kwargs:
-        kwargs['timeout'] = settings['outgoing']['request_timeout']
+        timeout = settings['outgoing']['request_timeout']
+        if settings['outgoing']['using_tor_proxy']:
+            timeout += settings['outgoing'].get('extra_proxy_timeout', 0)
+        kwargs['timeout'] = timeout
     kwargs['raise_for_httperror'] = True
+    return kwargs
 
 
-def get(*args, **kwargs) -> "SXNG_Response":  # type: ignore
-    update_kwargs(**kwargs)  # pyright: ignore[reportUnknownArgumentType]
-    return http_get(*args, **kwargs)  # pyright: ignore[reportUnknownArgumentType]
+def get(url: str, **kwargs: t.Any) -> "SXNG_Response":
+    return http_get(url, **update_kwargs(kwargs))
 
 
-def post(*args, **kwargs) -> "SXNG_Response":  # type: ignore
-    update_kwargs(**kwargs)  # pyright: ignore[reportUnknownArgumentType]
-    return http_post(*args, **kwargs)  # pyright: ignore[reportUnknownArgumentType]
+def post(url: str, **kwargs: t.Any) -> "SXNG_Response":
+    return http_post(url, **update_kwargs(kwargs))
 
 
 def baidu(query: str, _sxng_locale: str) -> list[str]:

@@ -2,7 +2,7 @@ general:
   # Debug mode, only for development. Is overwritten by ${SEARXNG_DEBUG}
   debug: false
   # displayed name
-  instance_name: "SearXNG"
+  instance_name: "TorXNG"
   # For example: https://example.com/privacy
   privacypolicy_url: false
   # use true to use your own donation page written in searx/info/en/donate.md
@@ -18,10 +18,13 @@ general:
   open_metrics: ''
 
 brand:
-  docs_url: https://docs.searxng.org/
-  public_instances: https://searx.space
-  wiki_url: https://github.com/searxng/searxng/wiki
-  issue_url: https://github.com/searxng/searxng/issues
+  # TorXNG (a Tor-only fork of SearXNG): project links point to the TorXNG
+  # repository; the SearXNG docs remain the reference for general settings.
+  docs_url: https://github.com/KaiBelmo/torxng/blob/master/torxng/README.md
+  # no list of public TorXNG instances (the SearXNG list shows clearnet instances)
+  public_instances: ""
+  wiki_url: https://github.com/KaiBelmo/torxng#readme
+  issue_url: https://github.com/KaiBelmo/torxng/issues
   # custom:
   #   # Custom entries in the footer: [title]: [link]
   #   links:
@@ -189,18 +192,41 @@ outgoing:
   # see https://curl-cffi.readthedocs.io/en/latest/quick_start.html
   #  verify: ~/.mitmproxy/mitmproxy-ca-cert.cer
   #
-  # uncomment below section if you want to use a proxy
+  # Tor-only build: all requests are sent over Tor.  SearXNG refuses to start
+  # when using_tor_proxy is false, when the proxies are not socks5h:// URLs or
+  # when the requests do not arrive at the Tor network (checked at startup).
   #
-  #  proxies:
-  #    all://:
-  #      - http://proxy1:8080
-  #      - http://proxy2:8080
+  # The default proxy is the SOCKS port of a local Tor daemon (the Tor Browser
+  # listens on port 9150).  The environment variable SEARXNG_TOR_PROXY (a
+  # single socks5h://host:port URL) replaces the proxies, e.g.:
+  #   SEARXNG_TOR_PROXY=socks5h://tor:9050
+  # A list of proxy URLs is used round-robin.  With use_default_settings, the
+  # proxies of a user settings.yml are merged with this entry: use the all://
+  # key to replace it.
+  proxies:
+    all://: socks5h://127.0.0.1:9050
   #
-  #  using_tor_proxy: true
+  # Environment: SEARXNG_USING_TOR_PROXY (can't be false)
+  using_tor_proxy: true
   #
   # Extra seconds to add in order to account for the time taken by the proxy
   #
-  #  extra_proxy_timeout: 10
+  #  extra_proxy_timeout: 10.0
+  #
+  # Spread the requests over N Tor circuits: each socks5h:// proxy (without
+  # credentials) is used with N distinct SOCKS credentials, Tor isolates them
+  # on different circuits (IsolateSOCKSAuth).  Environment: SEARXNG_TOR_CIRCUITS
+  #
+  #  tor_circuits: 3
+  #
+  # Tor control port (the Tor side needs a HashedControlPassword), used by the
+  # tor_circuit plugin.  An empty host disables it.  The password can also be
+  # set by the environment variable SEARXNG_TOR_CONTROL_PASSWORD.
+  #
+  #  tor_control:
+  #    host: 127.0.0.1
+  #    port: 9051
+  #    password: ""
   #
   # uncomment below section only if you have more than one network interface
   # which can be the source of outgoing search requests
@@ -2125,6 +2151,10 @@ engines:
   - name: radio browser
     engine: radio_browser
     shortcut: rb
+    # Tor-only build: the engine resolves its API servers with the local DNS
+    # resolver, so it refuses to load unless a static list is configured, e.g.
+    # servers: ["https://de1.api.radio-browser.info"] (then set inactive: false)
+    inactive: true
 
   - name: rawweb
     engine: json_engine

@@ -84,6 +84,13 @@ def new_client(
     cert_dir = os.environ.get("SSL_CERT_DIR")
     if cert_dir:
         extra_curl.setdefault(CurlOpt.CAPATH, cert_dir)
+    proxy_kwargs = _proxy_kwargs(proxies, enable_http)
+    if proxy_kwargs:
+        # Without CURLOPT_NOPROXY, libcurl honours the no_proxy / NO_PROXY
+        # environment variables and connects directly (and resolves the
+        # hostname locally) for the matching hosts.  An empty string means: the
+        # configured proxies are used for all hosts.
+        extra_curl.setdefault(CurlOpt.NOPROXY, "")
     use_impersonate = impersonate not in ("", NO_IMPERSONATE)
     kwargs: dict[str, t.Any] = {
         "verify": verify,
@@ -91,7 +98,7 @@ def new_client(
         "max_clients": max_connections or 10,
         "response_class": SXNG_Response,
         "discard_cookies": True,
-        **_proxy_kwargs(proxies, enable_http),
+        **proxy_kwargs,
     }
     if use_impersonate:
         kwargs["impersonate"] = impersonate

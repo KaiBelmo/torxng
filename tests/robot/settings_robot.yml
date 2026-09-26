@@ -29,6 +29,11 @@ preferences:
 outgoing:
   request_timeout: 1.0  # seconds
   useragent_suffix: ""
+  # Tor-only build: the web application checks the Tor proxy at startup, the
+  # robot tests need a Tor SOCKS proxy (SEARXNG_TOR_PROXY replaces this one)
+  using_tor_proxy: true
+  proxies:
+    "all://": "socks5h://127.0.0.1:9050"
 
 categories_as_tabs:
   general:
