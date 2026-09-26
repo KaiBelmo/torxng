@@ -1,0 +1,997 @@
+{
+  "suite": "torxng/tests/test_stack.py",
+  "started": "2026-09-26T15:09:27.784635+00:00",
+  "finished": "2026-09-26T15:12:47.357079+00:00",
+  "duration_s": 199.6,
+  "base_url": "http://127.0.0.1:8080",
+  "compose_file": "D:\\personal-projects\\work\\searxng\\torxng\\docker-compose.yml",
+  "destructive": true,
+  "patterns": [],
+  "environment": {
+    "docker_server": "29.6.1",
+    "compose": "5.2.0",
+    "python": "3.14.3",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "summary": {
+    "PASS": 61,
+    "FAIL": 0,
+    "ERROR": 0,
+    "SKIP": 0
+  },
+  "tests": [
+    {
+      "id": "D10",
+      "group": "D",
+      "group_title": "Tor behaviour",
+      "name": "unit_onion_checksum_known_good",
+      "property": "verify_onion_v3 accepts addresses built from known keys (and a published address).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "B -> lbtgmz...tmn5ad.onion, 2B and a published address verified",
+      "notes": [
+        "B -> lbtgmz...tmn5ad.onion, 2B and a published address verified"
+      ],
+      "duration_s": 0.0
+    },
+    {
+      "id": "D11",
+      "group": "D",
+      "group_title": "Tor behaviour",
+      "name": "unit_onion_checksum_rejects_corruption",
+      "property": "verify_onion_v3 rejects flipped characters, wrong version, length and alphabet.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "",
+      "notes": [],
+      "duration_s": 0.0
+    },
+    {
+      "id": "D12",
+      "group": "D",
+      "group_title": "Tor behaviour",
+      "name": "unit_ed25519_point_validation",
+      "property": "ed25519_pubkey_check accepts B, 2B and rejects identity, torsion, non-canonical, off-curve.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "",
+      "notes": [],
+      "duration_s": 0.01
+    },
+    {
+      "id": "A01",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "core_only_on_internal_network",
+      "property": "core is attached only to internal Docker networks and publishes no port.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "torxng_isolated: internal, core IP 172.30.0.10",
+      "notes": [
+        "torxng_isolated: internal, core IP 172.30.0.10"
+      ],
+      "duration_s": 1.73
+    },
+    {
+      "id": "A02",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "no_default_route_in_core",
+      "property": "core's routing table has no default route (IPv4 and IPv6).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "IPv4 routes: 172.30.0.0/24 dev eth0",
+      "notes": [
+        "IPv4 routes: 172.30.0.0/24 dev eth0"
+      ],
+      "duration_s": 0.27
+    },
+    {
+      "id": "A03",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "direct_egress_to_ip_literal_blocked",
+      "property": "TCP/UDP/HTTP from core straight to public IP literals fails (no route).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "7 probes blocked, e.g. tcp 1.1.1.1 port 443: blocked: Network is unreachable",
+      "notes": [
+        "7 probes blocked, e.g. tcp 1.1.1.1 port 443: blocked: Network is unreachable"
+      ],
+      "duration_s": 0.38
+    },
+    {
+      "id": "A04",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "direct_egress_to_hostname_blocked",
+      "property": "HTTP(S) from core to public hostnames without the proxy fails.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "e.g. https://check.torproject.org/api/ip: blocked: [Errno -3] Temporary failure in name resolution",
+      "notes": [
+        "e.g. https://check.torproject.org/api/ip: blocked: [Errno -3] Temporary failure in name resolution"
+      ],
+      "duration_s": 0.35
+    },
+    {
+      "id": "A05",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "no_external_dns_from_core",
+      "property": "core cannot resolve public names (no DNS leak via Docker's embedded resolver).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "positive control: 'tor' -> 172.30.0.2; nameservers ['127.0.0.11']",
+      "notes": [
+        "positive control: 'tor' -> 172.30.0.2; nameservers ['127.0.0.11']"
+      ],
+      "duration_s": 0.32
+    },
+    {
+      "id": "A06",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "core_connections_stay_on_isolated_network",
+      "property": "Every socket of core points to loopback or 172.30.0.0/24 (snapshot of /proc/net).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "peers: 127.0.0.1:45384 x1, 127.0.0.1:57190 x1, 172.30.0.2:9050 x10, 172.30.0.3:49362 x1",
+      "notes": [
+        "peers: 127.0.0.1:45384 x1, 127.0.0.1:57190 x1, 172.30.0.2:9050 x10, 172.30.0.3:49362 x1"
+      ],
+      "duration_s": 0.25
+    },
+    {
+      "id": "A07",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "tor_safesocks_rejects_ip_literals",
+      "property": "Tor refuses SOCKS requests that carry a raw IP (SafeSocks 1), hostnames work.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "socks5 IP: rep=2, socks4 IP: rep=91, socks5 hostname: rep=0",
+      "notes": [
+        "socks5 IP: rep=2, socks4 IP: rep=91, socks5 hostname: rep=0"
+      ],
+      "duration_s": 0.48
+    },
+    {
+      "id": "A08",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "deployed_settings_force_tor",
+      "property": "The deployed settings route every network through socks5h:// with using_tor_proxy.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "proxies=['socks5h://tor:9050'], tor_circuits=4, verify=True, limiter=False, autocomplete='', formats=['html', 'json']",
+      "notes": [
+        "proxies=['socks5h://tor:9050'], tor_circuits=4, verify=True, limiter=False, autocomplete='', formats=['html', 'json']"
+      ],
+      "duration_s": 0.58
+    },
+    {
+      "id": "B01",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "non_root_users",
+      "property": "Every process runs non-root: core uid 977, frontend uid 101, tor non-root.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "tor: euids [100]; core: euids [977]; frontend: euids [101]",
+      "notes": [
+        "tor: euids [100]",
+        "core: euids [977]",
+        "frontend: euids [101]"
+      ],
+      "duration_s": 1.23
+    },
+    {
+      "id": "B02",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "read_only_rootfs",
+      "property": "Root filesystems are read-only; only size-capped tmpfs and volumes are writable.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "tor: 10 dirs denied (9 with EROFS), tmpfs ['/tmp']; core: 7 dirs denied (6 with EROFS), tmpfs ['/tmp']; frontend: 12 dirs denied (11 with EROFS), tmpfs ['/tmp']",
+      "notes": [
+        "tor: 10 dirs denied (9 with EROFS), tmpfs ['/tmp']",
+        "core: 7 dirs denied (6 with EROFS), tmpfs ['/tmp']",
+        "frontend: 12 dirs denied (11 with EROFS), tmpfs ['/tmp']"
+      ],
+      "duration_s": 1.03
+    },
+    {
+      "id": "B03",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "no_capabilities_no_new_privs",
+      "property": "PID 1 has CapEff/CapPrm/CapBnd = 0 and NoNewPrivs = 1; cap_drop ALL in the config.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "tor: CapBnd=0000000000000000 NoNewPrivs=1 Seccomp=2; core: CapBnd=0000000000000000 NoNewPrivs=1 Seccomp=2; frontend: CapBnd=0000000000000000 NoNewPrivs=1 Seccomp=2",
+      "notes": [
+        "tor: CapBnd=0000000000000000 NoNewPrivs=1 Seccomp=2",
+        "core: CapBnd=0000000000000000 NoNewPrivs=1 Seccomp=2",
+        "frontend: CapBnd=0000000000000000 NoNewPrivs=1 Seccomp=2"
+      ],
+      "duration_s": 0.81
+    },
+    {
+      "id": "B04",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "resource_limits_set",
+      "property": "Memory, CPU and PID limits are set on tor, core and frontend (docker inspect).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "tor: mem=128m cpus=0.5 pids=64; core: mem=320m cpus=1 pids=256; frontend: mem=32m cpus=0.25 pids=32",
+      "notes": [
+        "tor: mem=128m cpus=0.5 pids=64",
+        "core: mem=320m cpus=1 pids=256",
+        "frontend: mem=32m cpus=0.25 pids=32"
+      ],
+      "duration_s": 0.0
+    },
+    {
+      "id": "B05",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "only_loopback_frontend_port_published",
+      "property": "The only published port is frontend on 127.0.0.1:<base-url port>.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "bindings: frontend 127.0.0.1:8080->8080/tcp",
+      "notes": [
+        "bindings: frontend 127.0.0.1:8080->8080/tcp"
+      ],
+      "duration_s": 0.38
+    },
+    {
+      "id": "B06",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "baseline_is_opt_in_and_not_our_image",
+      "property": "The clearnet baseline is behind a compose profile and never uses our core image.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "baseline: profiles ['baseline'], image docker.io/searxng/searxng:2026.9.25-12f8b6515",
+      "notes": [
+        "baseline: profiles ['baseline'], image docker.io/searxng/searxng:2026.9.25-12f8b6515"
+      ],
+      "duration_s": 1.29
+    },
+    {
+      "id": "B07",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "controlport_loopback_only_and_authenticated",
+      "property": "ControlPort is unreachable from core, needs the password inside tor, core holds no credentials.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "in tor: 127.0.0.1:9051 PROTOCOLINFO HASHEDPASSWORD, unauthenticated -> 514, wrong password -> 515, configured password -> 250; from core: 172.30.0.2:9051 closed: Connection refused, tor:9051 closed: Connection refused; core has no ControlPort password, tor_control.host empty",
+      "notes": [
+        "in tor: 127.0.0.1:9051 PROTOCOLINFO HASHEDPASSWORD, unauthenticated -> 514, wrong password -> 515, configured password -> 250",
+        "from core: 172.30.0.2:9051 closed: Connection refused, tor:9051 closed: Connection refused; core has no ControlPort password, tor_control.host empty"
+      ],
+      "duration_s": 1.72
+    },
+    {
+      "id": "B08",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "tor_ports_unreachable_from_host",
+      "property": "SocksPort/ControlPort (and core) cannot be reached from the host.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "127.0.0.1:9050 closed; 127.0.0.1:9051 closed; 172.30.0.2:9050 closed; 172.30.0.2:9051 closed; 172.30.0.10:8080 closed",
+      "notes": [
+        "127.0.0.1:9050 closed; 127.0.0.1:9051 closed; 172.30.0.2:9050 closed; 172.30.0.2:9051 closed; 172.30.0.10:8080 closed"
+      ],
+      "duration_s": 13.12
+    },
+    {
+      "id": "B09",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "hidden_service_dir_private",
+      "property": "The hidden service directory is mode 700 and its secret key 600, owned by tor.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "/var/lib/tor/searxng 700 tor; /var/lib/tor/searxng/hs_ed25519_secret_key 600 tor; /var/lib/tor/searxng/hostname 600 tor",
+      "notes": [
+        "/var/lib/tor/searxng 700 tor; /var/lib/tor/searxng/hs_ed25519_secret_key 600 tor; /var/lib/tor/searxng/hostname 600 tor"
+      ],
+      "duration_s": 0.72
+    },
+    {
+      "id": "B10",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "restart_and_log_rotation",
+      "property": "restart: unless-stopped and json-file logs capped with max-size/max-file.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "",
+      "notes": [],
+      "duration_s": 0.54
+    },
+    {
+      "id": "B11",
+      "group": "B",
+      "group_title": "Container hardening",
+      "name": "controlport_secret_not_exposed",
+      "property": "The ControlPort password is a read-only Compose secret of tor only and leaks nowhere.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "/run/secrets/tor_control_password: mounted in tor only, RW=False, /proc/mounts ro; tor Config.Env ['PATH']; password (64 chars) in no docker inspect output, no exec or PID 1 environment of tor/core/frontend, not in the torrc, not on tor's command line; torxng/secrets/tor_control_password is git-ignored",
+      "notes": [
+        "/run/secrets/tor_control_password: mounted in tor only, RW=False, /proc/mounts ro; tor Config.Env ['PATH']",
+        "password (64 chars) in no docker inspect output, no exec or PID 1 environment of tor/core/frontend, not in the torrc, not on tor's command line",
+        "torxng/secrets/tor_control_password is git-ignored"
+      ],
+      "duration_s": 4.21
+    },
+    {
+      "id": "E01",
+      "group": "E",
+      "group_title": "Resources",
+      "name": "idle_rss_below_limits",
+      "property": "Idle memory of each container stays below its memory limit.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "tor 63.7 MiB / 128.0 MiB (50%), pids 17; core 114.2 MiB / 320.0 MiB (36%), pids 9; frontend 3.7 MiB / 32.0 MiB (11%), pids 2",
+      "notes": [
+        "tor 63.7 MiB / 128.0 MiB (50%), pids 17",
+        "core 114.2 MiB / 320.0 MiB (36%), pids 9",
+        "frontend 3.7 MiB / 32.0 MiB (11%), pids 2"
+      ],
+      "duration_s": 2.22
+    },
+    {
+      "id": "E02",
+      "group": "E",
+      "group_title": "Resources",
+      "name": "image_sizes",
+      "property": "Image size per service as shown by 'docker image ls' (WARN above soft thresholds).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "tor 59 MB (content 13 MB, torxng/tor:latest); core 368 MB (content 94 MB, torxng/core:latest); frontend 74 MB (content 21 MB, docker.io/nginxinc/nginx-unprivileged:1.27-alpine); stock searxng 382 MB",
+      "notes": [
+        "tor 59 MB (content 13 MB, torxng/tor:latest)",
+        "core 368 MB (content 94 MB, torxng/core:latest)",
+        "frontend 74 MB (content 21 MB, docker.io/nginxinc/nginx-unprivileged:1.27-alpine)",
+        "stock searxng 382 MB"
+      ],
+      "duration_s": 1.31
+    },
+    {
+      "id": "E03",
+      "group": "E",
+      "group_title": "Resources",
+      "name": "startup_time_to_healthy",
+      "property": "Seconds from container start to healthy (docker events, else readiness log line).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "tor 12s (health event); core 16s (health event); frontend 5s (health event)",
+      "notes": [
+        "tor 12s (health event)",
+        "core 16s (health event)",
+        "frontend 5s (health event)"
+      ],
+      "duration_s": 2.35
+    },
+    {
+      "id": "E04",
+      "group": "E",
+      "group_title": "Resources",
+      "name": "image_trims_applied",
+      "property": "core image: no .po, no sourcemaps, no lid.176.ftz, .mo kept, granian env set.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "po=0 map=0 mo=60 lid=0",
+      "notes": [
+        "po=0 map=0 mo=60 lid=0"
+      ],
+      "duration_s": 0.32
+    },
+    {
+      "id": "E05",
+      "group": "E",
+      "group_title": "Resources",
+      "name": "translations_still_work",
+      "property": "Accept-Language: de renders the German UI (the .mo files survived the trim).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "",
+      "notes": [],
+      "duration_s": 0.09
+    },
+    {
+      "id": "C01",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "security_headers_exactly_once",
+      "property": "Every security header is present exactly once with the spec value (also on errors).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "checked 6 responses incl. 404/405 and a static file",
+      "notes": [
+        "checked 6 responses incl. 404/405 and a static file"
+      ],
+      "duration_s": 0.06
+    },
+    {
+      "id": "C02",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "server_header_hides_version",
+      "property": "Server header is sent once without a version; no X-Powered-By or upstream server.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "",
+      "notes": [],
+      "duration_s": 0.02
+    },
+    {
+      "id": "C03",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "disallowed_methods_405",
+      "property": "PUT/DELETE/TRACE/OPTIONS/PATCH -> 405; unknown methods -> 4xx; GET/HEAD/POST work.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "",
+      "notes": [],
+      "duration_s": 0.07
+    },
+    {
+      "id": "C04",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "body_over_32k_rejected_413",
+      "property": "Request bodies over 32 KiB are rejected with 413 (Content-Length and chunked).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "40KB -> 413, 16KB -> 200",
+      "notes": [
+        "40KB -> 413, 16KB -> 200"
+      ],
+      "duration_s": 0.01
+    },
+    {
+      "id": "C05",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "oversized_query_and_headers_no_5xx",
+      "property": "10k-char query -> 414 or a clean 4xx/200; a 10 KB header -> 4xx; never 5xx.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "10k-char query -> 414; 10 KB header -> 400",
+      "notes": [
+        "10k-char query -> 414",
+        "10 KB header -> 400"
+      ],
+      "duration_s": 0.01
+    },
+    {
+      "id": "C06",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "unicode_and_blank_queries",
+      "property": "Unicode, emoji, RTL, bidi-override, zero-width, blank and empty queries never 5xx.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "latin1=200, cjk=200, emoji=200, hebrew-rtl=200, arabic-rtl=200, bidi-override=200, zero-width=200, combining=200, whitespace=200, tabs-newlines=200, empty=400, long-unicode=200",
+      "notes": [
+        "latin1=200, cjk=200, emoji=200, hebrew-rtl=200, arabic-rtl=200, bidi-override=200, zero-width=200, combining=200, whitespace=200, tabs-newlines=200, empty=400, long-unicode=200"
+      ],
+      "duration_s": 4.71
+    },
+    {
+      "id": "C07",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "nul_and_crlf_injection",
+      "property": "%00 and CRLF in parameters/paths never cause 5xx or response header injection.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "11 requests: 200, 200, 200, 400, 200, 400, 400, 404, 404, 400, 200",
+      "notes": [
+        "11 requests: 200, 200, 200, 400, 200, 400, 400, 404, 404, 400, 200"
+      ],
+      "duration_s": 2.57
+    },
+    {
+      "id": "C08",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "xss_payload_escaped",
+      "property": "XSS payloads in q and other parameters are never reflected unescaped; JSON is typed.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "4/7 responses reflected the payload HTML-escaped",
+      "notes": [
+        "4/7 responses reflected the payload HTML-escaped"
+      ],
+      "duration_s": 6.28
+    },
+    {
+      "id": "C09",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "static_path_traversal",
+      "property": "Path traversal on /static (plain, encoded, double-encoded, backslash) -> 4xx, no file leak.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "statuses: 400,400,400,400,404,404,404,400,404,400,400,404",
+      "notes": [
+        "statuses: 400,400,400,400,404,404,404,400,404,400,400,404"
+      ],
+      "duration_s": 0.08
+    },
+    {
+      "id": "C10",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "invalid_parameters_never_5xx",
+      "property": "Invalid pageno/time_range/language/categories/safesearch/format/theme never cause 5xx.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "status counts: 200x10, 400x12, 403x2",
+      "notes": [
+        "status counts: 200x10, 400x12, 403x2"
+      ],
+      "duration_s": 10.2
+    },
+    {
+      "id": "C11",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "client_css_and_healthz",
+      "property": "/client12345678.css -> 200 text/css (no Valkey needed); /healthz -> 200 OK.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "",
+      "notes": [],
+      "duration_s": 0.01
+    },
+    {
+      "id": "C12",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "image_proxy_rejects_forged_hmac",
+      "property": "/image_proxy and /favicon_proxy reject missing/forged HMACs (no open proxy / SSRF).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "10 forged/missing HMAC requests rejected",
+      "notes": [
+        "10 forged/missing HMAC requests rejected"
+      ],
+      "duration_s": 0.46
+    },
+    {
+      "id": "C13",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "xff_spoofing_ignored",
+      "property": "Client-supplied X-Forwarded-For / X-Real-IP / Forwarded do not change the client IP.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "SearXNG sees 172.22.0.1 (with spoofed headers: 172.22.0.1)",
+      "notes": [
+        "SearXNG sees 172.22.0.1 (with spoofed headers: 172.22.0.1)"
+      ],
+      "duration_s": 0.32
+    },
+    {
+      "id": "C14",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "slow_client_timeouts",
+      "property": "Slowloris: an unfinished header or body is cut off within ~10 s (limit 20 s).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "header: closed after 10.0s (status -); body: closed after 10.0s (status -)",
+      "notes": [
+        "header: closed after 10.0s (status -); body: closed after 10.0s (status -)"
+      ],
+      "duration_s": 10.04
+    },
+    {
+      "id": "C15",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "rate_limit_search_burst_429",
+      "property": "A burst of 30 searches (and 20 autocompleter calls) yields some 429 and no 5xx.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "/search: 19/30 got 429; /autocompleter: 9/20 got 429",
+      "notes": [
+        "/search: 19/30 got 429; /autocompleter: 9/20 got 429"
+      ],
+      "duration_s": 18.06
+    },
+    {
+      "id": "C16",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "rate_limit_image_proxy_burst_429",
+      "property": "A burst of 150 /image_proxy requests hits the image zone limit (429), no 5xx.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "88/150 got 429",
+      "notes": [
+        "88/150 got 429"
+      ],
+      "duration_s": 8.06
+    },
+    {
+      "id": "C17",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "queries_not_logged",
+      "property": "A unique search term never appears in any container log (tor, core, frontend).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "marker requests -> 200, 200, 200, 400, 429, 429, 429, 413; searched frontend, core and tor logs",
+      "notes": [
+        "marker requests -> 200, 200, 200, 400, 429, 429, 429, 413; searched frontend, core and tor logs"
+      ],
+      "duration_s": 17.77
+    },
+    {
+      "id": "C18",
+      "group": "C",
+      "group_title": "HTTP edge cases",
+      "name": "no_tor_details_in_public_endpoints",
+      "property": "/config, /stats and the HTML pages expose no proxy URL, SOCKS credentials or ControlPort data.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "checked /config and /=200, /preferences=200, /stats=200, /stats/errors=200, /search=200",
+      "notes": [
+        "checked /config and /=200, /preferences=200, /stats=200, /stats/errors=200, /search=200"
+      ],
+      "duration_s": 2.99
+    },
+    {
+      "id": "D01",
+      "group": "D",
+      "group_title": "Tor behaviour",
+      "name": "circuit_answers_show_tor_exits",
+      "property": "'circuit' shows every pooled circuit exiting via Tor, without guard/middle relays.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "4 circuits, 4 distinct exit IPs, exit relay unknown, no guard/middle relay disclosed (1 attempt(s))",
+      "notes": [
+        "4 circuits, 4 distinct exit IPs, exit relay unknown, no guard/middle relay disclosed (1 attempt(s))"
+      ],
+      "duration_s": 0.33
+    },
+    {
+      "id": "D02",
+      "group": "D",
+      "group_title": "Tor behaviour",
+      "name": "tor_check_not_applicable",
+      "property": "'tor-check' says 'not applicable' with a private address, even with a spoofed XFF.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "'not applicable' for 172.22.0.1, also with a spoofed Tor-exit XFF",
+      "notes": [
+        "'not applicable' for 172.22.0.1, also with a spoofed Tor-exit XFF"
+      ],
+      "duration_s": 1.7
+    },
+    {
+      "id": "D03",
+      "group": "D",
+      "group_title": "Tor behaviour",
+      "name": "onion_hostname_valid_v3",
+      "property": "Onion hostname is a valid v3 address (checksum verified) matching the HS public key.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "address encodes hs_ed25519_public_key; 27ew7o...dzbfid.onion: valid v3 onion address (version 0x03, checksum verified)",
+      "notes": [
+        "address encodes hs_ed25519_public_key",
+        "27ew7o...dzbfid.onion: valid v3 onion address (version 0x03, checksum verified)"
+      ],
+      "duration_s": 0.79
+    },
+    {
+      "id": "D04",
+      "group": "D",
+      "group_title": "Tor behaviour",
+      "name": "onion_served_through_frontend",
+      "property": "The onion service answers 200 via Tor and carries nginx's security headers.",
+      "destructive": false,
+      "status": "PASS",
+      "message": "200 via Tor in 6s (1 attempt(s))",
+      "notes": [
+        "200 via Tor in 6s (1 attempt(s))"
+      ],
+      "duration_s": 6.08
+    },
+    {
+      "id": "D05",
+      "group": "D",
+      "group_title": "Tor behaviour",
+      "name": "torrc_hardening_options",
+      "property": "torrc carries the hardening options (SafeSocks, ClientOnly, onion DoS defences ...).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "/tmp/torrc: pow module yes, MaxMemInQueues=64 MB",
+      "notes": [
+        "/tmp/torrc: pow module yes, MaxMemInQueues=64 MB"
+      ],
+      "duration_s": 0.24
+    },
+    {
+      "id": "D06",
+      "group": "D",
+      "group_title": "Tor behaviour",
+      "name": "circuit_results_cached",
+      "property": "Repeated 'circuit' queries within 60 s reuse one probe result (no probe amplification).",
+      "destructive": false,
+      "status": "PASS",
+      "message": "identical answers (5 lines) for queries seconds apart; 0.2s / 0.3s",
+      "notes": [
+        "identical answers (5 lines) for queries seconds apart; 0.2s / 0.3s"
+      ],
+      "duration_s": 0.52
+    },
+    {
+      "id": "A10",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "guard_rejects_settings_without_tor",
+      "property": "Guard exits 78 without a Tor config (defaults, flag off/without proxies, env, empty dir, bad YAML).",
+      "destructive": true,
+      "status": "PASS",
+      "message": "6/6 cases refused with exit 78; defaults: 78 'outgoing.proxies: proxy host 127.0.0.1 is a loopback address, but no T'; using_tor_proxy false: 78 'invalid SearXNG settings (Tor-only build: outgoing.using_tor_proxy mus'; tor flag without proxies: 78 'outgoing.proxies: proxy host 127.0.0.1 is a loopback address, but no T'; env SEARXNG_USING_TOR_PROXY=false: 78 'invalid SearXNG settings (Tor-only build: outgoing.using_tor_proxy mus'; empty config dir: 78 'outgoing.proxies: proxy host 127.0.0.1 is a loopback address, but no T'; invalid YAML: 78 'invalid SearXNG settings (while parsing a flow sequence)'",
+      "notes": [
+        "6/6 cases refused with exit 78",
+        "defaults: 78 'outgoing.proxies: proxy host 127.0.0.1 is a loopback address, but no T'",
+        "using_tor_proxy false: 78 'invalid SearXNG settings (Tor-only build: outgoing.using_tor_proxy mus'",
+        "tor flag without proxies: 78 'outgoing.proxies: proxy host 127.0.0.1 is a loopback address, but no T'",
+        "env SEARXNG_USING_TOR_PROXY=false: 78 'invalid SearXNG settings (Tor-only build: outgoing.using_tor_proxy mus'",
+        "empty config dir: 78 'outgoing.proxies: proxy host 127.0.0.1 is a loopback address, but no T'",
+        "invalid YAML: 78 'invalid SearXNG settings (while parsing a flow sequence)'"
+      ],
+      "duration_s": 6.07
+    },
+    {
+      "id": "A11",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "guard_rejects_non_socks5h_proxy",
+      "property": "Guard exits 78 for socks5://, http://, socks4://, mixed lists and http(s)-only patterns.",
+      "destructive": true,
+      "status": "PASS",
+      "message": "7/7 cases refused with exit 78; socks5://: 78 'invalid SearXNG settings (Tor-only build: outgoing.proxies must be a s'; http://: 78 'invalid SearXNG settings (Tor-only build: outgoing.proxies must be a s'; socks4://: 78 'invalid SearXNG settings (Tor-only build: outgoing.proxies must be a s'; mixed list: 78 'invalid SearXNG settings (Tor-only build: outgoing.proxies must be a s'; per-scheme https socks5: 78 'invalid SearXNG settings (Tor-only build: outgoing.proxies must be a s'; https-only pattern (no all://): 78 'outgoing.proxies: proxy host 127.0.0.1 is a loopback address, but no T'; http-only pattern (no all://): 78 'outgoing.proxies: proxy host 127.0.0.1 is a loopback address, but no T'",
+      "notes": [
+        "7/7 cases refused with exit 78",
+        "socks5://: 78 'invalid SearXNG settings (Tor-only build: outgoing.proxies must be a s'",
+        "http://: 78 'invalid SearXNG settings (Tor-only build: outgoing.proxies must be a s'",
+        "socks4://: 78 'invalid SearXNG settings (Tor-only build: outgoing.proxies must be a s'",
+        "mixed list: 78 'invalid SearXNG settings (Tor-only build: outgoing.proxies must be a s'",
+        "per-scheme https socks5: 78 'invalid SearXNG settings (Tor-only build: outgoing.proxies must be a s'",
+        "https-only pattern (no all://): 78 'outgoing.proxies: proxy host 127.0.0.1 is a loopback address, but no T'",
+        "http-only pattern (no all://): 78 'outgoing.proxies: proxy host 127.0.0.1 is a loopback address, but no T'"
+      ],
+      "duration_s": 6.36
+    },
+    {
+      "id": "A12",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "guard_rejects_non_socks5h_network_and_engine_proxies",
+      "property": "Guard exits 78 for non-socks5h or Tor-disabled networks and engines.",
+      "destructive": true,
+      "status": "PASS",
+      "message": "5/5 cases refused with exit 78; outgoing.networks proxy: 78 'outgoing.networks.torxng_net.proxies: proxy 'socks5://tor:9050' is not'; outgoing.networks using_tor_proxy false: 78 'outgoing.networks.torxng_net.using_tor_proxy must not be false'; engine proxies: 78 'engine 'wikipedia' proxies: proxy 'socks5://tor:9050' is not a socks5h'; engine network dict: 78 'engine 'wikipedia' network.proxies: proxy 'http://127.0.0.1:3128' is n'; engine network using_tor_proxy false: 78 'engine 'wikipedia' network.using_tor_proxy must not be false'",
+      "notes": [
+        "5/5 cases refused with exit 78",
+        "outgoing.networks proxy: 78 'outgoing.networks.torxng_net.proxies: proxy 'socks5://tor:9050' is not'",
+        "outgoing.networks using_tor_proxy false: 78 'outgoing.networks.torxng_net.using_tor_proxy must not be false'",
+        "engine proxies: 78 'engine 'wikipedia' proxies: proxy 'socks5://tor:9050' is not a socks5h'",
+        "engine network dict: 78 'engine 'wikipedia' network.proxies: proxy 'http://127.0.0.1:3128' is n'",
+        "engine network using_tor_proxy false: 78 'engine 'wikipedia' network.using_tor_proxy must not be false'"
+      ],
+      "duration_s": 4.49
+    },
+    {
+      "id": "A13",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "guard_accepts_tor_settings_then_fails_closed",
+      "property": "Guard accepts the deployed settings; SearXNG then refuses to start without Tor.",
+      "destructive": true,
+      "status": "PASS",
+      "message": "guard passed, exit 1 after 9s: RuntimeError: Invalid network configuration",
+      "notes": [
+        "guard passed, exit 1 after 9s: RuntimeError: Invalid network configuration"
+      ],
+      "duration_s": 8.75
+    },
+    {
+      "id": "A18",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "guard_rejects_weakened_tls_and_control_access",
+      "property": "Guard exits 78 for verify: false and for any tor_control.host (settings or env).",
+      "destructive": true,
+      "status": "PASS",
+      "message": "3/3 cases refused with exit 78; verify: false: 78 'outgoing.verify must not be false (TLS certificates of the engines mus'; tor_control.host set: 78 'outgoing.tor_control.host must be empty: SearXNG must not hold Tor Con'; env SEARXNG_TOR_CONTROL_HOST: 78 'outgoing.tor_control.host must be empty: SearXNG must not hold Tor Con'",
+      "notes": [
+        "3/3 cases refused with exit 78",
+        "verify: false: 78 'outgoing.verify must not be false (TLS certificates of the engines mus'",
+        "tor_control.host set: 78 'outgoing.tor_control.host must be empty: SearXNG must not hold Tor Con'",
+        "env SEARXNG_TOR_CONTROL_HOST: 78 'outgoing.tor_control.host must be empty: SearXNG must not hold Tor Con'"
+      ],
+      "duration_s": 2.84
+    },
+    {
+      "id": "A19",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "guard_rejects_proxy_env_vars",
+      "property": "Guard exits 78 if http_proxy/https_proxy/all_proxy/no_proxy is set, in any letter case.",
+      "destructive": true,
+      "status": "PASS",
+      "message": "10/10 cases refused with exit 78; env NO_PROXY: 78 'proxy environment variable(s) set: NO_PROXY (libcurl would honour them'; env HTTPS_PROXY: 78 'proxy environment variable(s) set: HTTPS_PROXY (libcurl would honour t'; env all_proxy: 78 'proxy environment variable(s) set: all_proxy (libcurl would honour the'; env http_proxy: 78 'proxy environment variable(s) set: http_proxy (libcurl would honour th'; env https_proxy: 78 'proxy environment variable(s) set: https_proxy (libcurl would honour t'; env no_proxy: 78 'proxy environment variable(s) set: no_proxy (libcurl would honour them'; env ALL_PROXY: 78 'proxy environment variable(s) set: ALL_PROXY (libcurl would honour the'; env HTTP_PROXY: 78 'proxy environment variable(s) set: HTTP_PROXY (libcurl would honour th'; env Https_Proxy: 78 'proxy environment variable(s) set: Https_Proxy (libcurl would honour t'; env No_Proxy: 78 'proxy environment variable(s) set: No_Proxy (libcurl would honour them'",
+      "notes": [
+        "10/10 cases refused with exit 78",
+        "env NO_PROXY: 78 'proxy environment variable(s) set: NO_PROXY (libcurl would honour them'",
+        "env HTTPS_PROXY: 78 'proxy environment variable(s) set: HTTPS_PROXY (libcurl would honour t'",
+        "env all_proxy: 78 'proxy environment variable(s) set: all_proxy (libcurl would honour the'",
+        "env http_proxy: 78 'proxy environment variable(s) set: http_proxy (libcurl would honour th'",
+        "env https_proxy: 78 'proxy environment variable(s) set: https_proxy (libcurl would honour t'",
+        "env no_proxy: 78 'proxy environment variable(s) set: no_proxy (libcurl would honour them'",
+        "env ALL_PROXY: 78 'proxy environment variable(s) set: ALL_PROXY (libcurl would honour the'",
+        "env HTTP_PROXY: 78 'proxy environment variable(s) set: HTTP_PROXY (libcurl would honour th'",
+        "env Https_Proxy: 78 'proxy environment variable(s) set: Https_Proxy (libcurl would honour t'",
+        "env No_Proxy: 78 'proxy environment variable(s) set: No_Proxy (libcurl would honour them'"
+      ],
+      "duration_s": 7.3
+    },
+    {
+      "id": "A14",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "search_without_tor_fails_gracefully",
+      "property": "With tor stopped: no 5xx, no results, engines reported unresponsive, core stays up.",
+      "destructive": true,
+      "status": "PASS",
+      "message": "JSON 200 in 0.0s, 4 unresponsive engines, 0 results",
+      "notes": [
+        "JSON 200 in 0.0s, 4 unresponsive engines, 0 results"
+      ],
+      "duration_s": 0.59
+    },
+    {
+      "id": "A15",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "no_egress_while_tor_down",
+      "property": "With tor stopped, core still cannot reach anything directly (no fallback path).",
+      "destructive": true,
+      "status": "PASS",
+      "message": "",
+      "notes": [],
+      "duration_s": 0.77
+    },
+    {
+      "id": "A16",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "core_refuses_start_while_tor_down",
+      "property": "A new core container refuses to start while tor is down (Invalid network configuration).",
+      "destructive": true,
+      "status": "PASS",
+      "message": "guard passed, exit 1 after 9s on torxng_isolated",
+      "notes": [
+        "guard passed, exit 1 after 9s on torxng_isolated"
+      ],
+      "duration_s": 9.15
+    },
+    {
+      "id": "A17",
+      "group": "A",
+      "group_title": "Tor-only / fail-closed",
+      "name": "recovery_after_tor_restart",
+      "property": "After tor is started again, searches recover within a bounded time.",
+      "destructive": true,
+      "status": "PASS",
+      "message": "tor healthy after 12s, results after 15s (1 search attempt(s))",
+      "notes": [
+        "tor healthy after 12s, results after 15s (1 search attempt(s))"
+      ],
+      "duration_s": 15.07
+    }
+  ],
+  "metrics": {
+    "limits": {
+      "tor": {
+        "memory_mib": 128.0,
+        "cpus": 0.5,
+        "pids": 64
+      },
+      "core": {
+        "memory_mib": 320.0,
+        "cpus": 1.0,
+        "pids": 256
+      },
+      "frontend": {
+        "memory_mib": 32.0,
+        "cpus": 0.25,
+        "pids": 32
+      }
+    },
+    "idle_rss_mib": {
+      "tor": 63.7,
+      "core": 114.2,
+      "frontend": 3.7
+    },
+    "image_size_mb": {
+      "tor": 59.2,
+      "core": 368.0,
+      "frontend": 73.7,
+      "stock_searxng": 382.0
+    },
+    "image_content_size_mb": {
+      "tor": 13.4,
+      "core": 93.8,
+      "frontend": 21.0
+    },
+    "startup_to_healthy": {
+      "tor": {
+        "seconds": 12.4,
+        "source": "health event"
+      },
+      "core": {
+        "seconds": 15.8,
+        "source": "health event"
+      },
+      "frontend": {
+        "seconds": 5.4,
+        "source": "health event"
+      }
+    },
+    "timeouts": {
+      "slow_header_s": 10.0,
+      "slow_body_s": 10.0
+    },
+    "rate_limit": {
+      "search_burst_429_of_30": 19,
+      "autocompleter_burst_429_of_20": 9,
+      "image_proxy_burst_429_of_150": 88
+    },
+    "exit_ips_distinct": 4,
+    "exit_ips": [
+      "109.70.100.3",
+      "185.220.101.0",
+      "185.220.101.180",
+      "31.58.216.18"
+    ],
+    "tor_circuits": 4,
+    "onion_fetch_s": 6.1,
+    "circuit_query_s": {
+      "first": 0.16,
+      "repeat": 0.33
+    },
+    "guard_valid_settings_exit_s": 8.6,
+    "core_refuses_start_s": 8.8,
+    "tor_recovery": {
+      "tor_healthy_s": 12.4,
+      "search_recovered_s": 15.1,
+      "attempts": 1
+    },
+    "rss_after_tests_mib": {
+      "tor": 53.7,
+      "core": 157.4,
+      "frontend": 3.7
+    }
+  },
+  "restore_problems": []
+}

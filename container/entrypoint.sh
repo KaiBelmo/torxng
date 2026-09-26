@@ -96,6 +96,59 @@ EOF
     check_file "$target_settings"
 }
 
+# Tor-only build: SearXNG does not start without a reachable Tor SOCKS proxy
+# (its startup check ends with "Invalid network configuration"). Probe the
+# proxy of SEARXNG_TOR_PROXY first and explain what is missing; the URL itself
+# (socks5h:// only) is validated by SearXNG.
+check_tor_proxy() {
+    local reason
+
+    if [ -z "${SEARXNG_TOR_PROXY:-}" ]; then
+        return 0
+    fi
+
+    if ! reason=$(
+        /usr/local/searxng/.venv/bin/python - "$SEARXNG_TOR_PROXY" <<'EOF'
+import socket
+import sys
+import time
+from urllib.parse import urlsplit
+
+try:
+    url = urlsplit(sys.argv[1])
+    host, port = url.hostname, url.port
+except ValueError:
+    sys.exit(0)
+if url.scheme != "socks5h" or not host or not port:
+    sys.exit(0)
+for attempt in range(3):
+    if attempt:
+        time.sleep(2)
+    try:
+        socket.create_connection((host, port), timeout=3).close()
+        sys.exit(0)
+    except OSError as exc:
+        error = exc
+print(f"{host}:{port} ({error})")
+sys.exit(1)
+EOF
+    ); then
+        cat <<EOF
+!!!
+!!! ERROR
+!!! Tor-only build: SearXNG sends every request through the Tor SOCKS proxy
+!!! of SEARXNG_TOR_PROXY and does not start without it.
+!!! Cannot connect to $reason
+!!! Run Tor in a container named "tor" on the same network (the stack of
+!!! container/docker-compose.yml does this), or set SEARXNG_TOR_PROXY to a
+!!! reachable Tor SocksPort, e.g. "socks5h://127.0.0.1:9050" together with
+!!! "--network host". Exiting...
+!!!
+EOF
+        exit 1
+    fi
+}
+
 cat <<EOF
 SearXNG $__SEARXNG_VERSION
 EOF
@@ -122,5 +175,7 @@ case "${SEARXNG_PORT:-}" in
         export GRANIAN_PORT="$SEARXNG_PORT"
         ;;
 esac
+
+check_tor_proxy
 
 exec /usr/local/searxng/.venv/bin/granian searx.webapp:app

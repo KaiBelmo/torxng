@@ -1,0 +1,22 @@
+# Benchmark queries: generic, harmless, one per line ("#" = comment).
+# Mix of short/long, navigational/informational and a few non-English terms.
+weather forecast
+linux kernel
+python tutorial
+open source software
+solar energy
+chess openings
+bread recipe
+history of the internet
+climate change
+photosynthesis
+mount everest height
+how do vaccines work
+public transport berlin
+learn spanish online
+jazz music
+bicycle maintenance
+world cup results
+recette de crepes
+wikipedia
+tor project

@@ -27,3 +27,8 @@ searx/version_frozen.py
 .dir-locals.el
 
 .python-version
+
+# TorXNG deployment: local secrets and benchmark output
+torxng/.env
+torxng/results/*.csv
+!torxng/results/.gitkeep

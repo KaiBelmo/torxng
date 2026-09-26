@@ -1,0 +1,109 @@
+# SearXNG settings - clearnet BASELINE (benchmark only)
+#
+# Used by the "baseline" service (compose profile "baseline"), which runs the
+# STOCK upstream image docker.io/searxng/searxng:2026.9.25-12f8b6515 with
+# direct internet access. It exists only to measure the cost of Tor in the
+# benchmark (torxng/benchmark/bench.py) and is not part of the product.
+#
+# Same clearnet engines, plugins and privacy options as ../searxng/settings.yml
+# except that nothing goes through Tor: no proxies, no using_tor_proxy, no
+# tor_* options, no onion engines and no Tor plugins.
+
+use_default_settings:
+  engines:
+    keep_only:
+      - bing
+      - google
+      - startpage
+      - wikipedia
+      - bing images
+      - wikicommons.images
+
+general:
+  instance_name: "SearXNG clearnet baseline"
+  enable_metrics: true
+
+search:
+  autocomplete: ""
+  formats:
+    - html
+    - json
+  max_page: 5
+  # Same short error back-off and suspensions as the Tor profile, so both
+  # profiles are measured under identical engine-suspension rules.
+  ban_time_on_fail: 5
+  max_ban_time_on_fail: 60
+  suspended_times:
+    SearxEngineAccessDenied: 60
+    SearxEngineCaptcha: 120
+    SearxEngineTooManyRequests: 60
+    cf_SearxEngineCaptcha: 300
+    cf_SearxEngineAccessDenied: 300
+    recaptcha_SearxEngineCaptcha: 300
+
+server:
+  # replaced by env SEARXNG_SECRET
+  secret_key: "ultrasecretkey"
+  limiter: false
+  public_instance: false
+  image_proxy: true
+  method: "POST"
+  http_protocol_version: "1.1"
+
+ui:
+  query_in_title: false
+
+preferences:
+  lock:
+    - autocomplete
+    - image_proxy
+    - method
+    - query_in_title
+
+outgoing:
+  # upstream default timeout (no proxy latency to compensate)
+  request_timeout: 3.0
+  max_request_timeout: 30.0
+  pool_connections: 16
+  enable_http2: true
+  verify: true
+  retries: 1
+
+plugins:
+  searx.plugins.calculator.SXNGPlugin:
+    active: true
+  searx.plugins.infinite_scroll.SXNGPlugin:
+    active: false
+  searx.plugins.hash_plugin.SXNGPlugin:
+    active: true
+  searx.plugins.self_info.SXNGPlugin:
+    active: true
+  searx.plugins.unit_converter.SXNGPlugin:
+    active: true
+  searx.plugins.ahmia_filter.SXNGPlugin:
+    active: true
+  searx.plugins.hostnames.SXNGPlugin:
+    active: true
+  searx.plugins.time_zone.SXNGPlugin:
+    active: true
+  searx.plugins.oa_doi_rewrite.SXNGPlugin:
+    active: false
+  searx.plugins.tor_check.SXNGPlugin:
+    active: false
+  # searx.plugins.tor_circuit does not exist in the stock image (and there are
+  # no circuits without Tor)
+  searx.plugins.tracker_url_remover.SXNGPlugin:
+    active: true
+
+categories_as_tabs:
+  general:
+  images:
+
+# same activation as the Tor profile
+engines:
+  - name: bing
+    disabled: false
+  - name: google
+    disabled: false
+  - name: startpage
+    inactive: false

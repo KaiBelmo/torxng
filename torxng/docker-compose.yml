@@ -1,0 +1,213 @@
+# TorXNG - Tor-only SearXNG fork: deployment (hardened, low resource use).
+#
+#   host 127.0.0.1:8080 --> [frontend nginx 172.30.0.3:8080] --> [core SearXNG 172.30.0.10:8080]
+#   onion :80 --(tor)-----> [frontend nginx 172.30.0.3:8080] --> [core]
+#   [core] --socks5h--> [tor 172.30.0.2:9050] --> Tor network --> search engines
+#
+# core is attached ONLY to the internal network "isolated" (no route to the
+# internet) and its image refuses to start unless settings.yml routes every
+# request through socks5h:// (torxng/core/tor_only_guard.py, exit code 78);
+# the SearXNG code of this branch refuses to run without Tor as well.
+#
+# container/docker-compose.yml includes this file under the same project
+# name: "docker compose -f container/docker-compose.yml ..." from the
+# repository root manages exactly this stack.
+#
+# Usage (from this directory):
+#   cp .env.example .env        # then fill in SEARXNG_SECRET
+#   openssl rand -hex 32 > secrets/tor_control_password   # ControlPort (optional)
+#   docker compose up -d --build
+#   docker compose exec tor cat /var/lib/tor/searxng/hostname
+# Clearnet baseline for the benchmark only (stock upstream image, no Tor):
+#   docker compose --profile baseline up -d baseline
+
+name: torxng
+
+# Hardening shared by all services: read-only root filesystem, no Linux
+# capabilities, no privilege escalation via setuid binaries, bounded logs.
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "1m"
+      max-file: "3"
+
+x-searxng-healthcheck: &searxng-healthcheck
+  test:
+    - CMD
+    - /usr/local/searxng/.venv/bin/python
+    - -c
+    - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3)
+  interval: 30s
+  timeout: 5s
+  retries: 5
+  start_period: 120s
+  start_interval: 5s
+
+networks:
+  # Ordinary bridge network with internet access (tor, frontend, baseline).
+  egress: {}
+  # internal: true -> Docker creates no default route / NAT for this network.
+  isolated:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+secrets:
+  # Create it before the first "docker compose up" (see README.md, quick
+  # start): openssl rand -hex 32 > secrets/tor_control_password
+  # If it is missing, Docker creates an empty DIRECTORY with that name on the
+  # host and the ControlPort stays disabled.
+  # Compose (without Swarm) bind-mounts the file read-only; uid/gid/mode
+  # options are ignored. On Linux the file must be readable by the tor user
+  # (uid 100) inside the container: chmod 0644 secrets/tor_control_password
+  # and chmod 0700 secrets/ (the directory keeps other host users out).
+  tor_control_password:
+    file: ./secrets/tor_control_password
+
+volumes:
+  # Onion service identity (ed25519 key) and Tor state: keep it to keep the
+  # .onion address stable.
+  tor-data:
+  core-data:
+  baseline-data:
+
+services:
+  tor:
+    <<: *hardening
+    build: ./tor
+    image: torxng/tor:latest
+    # Password of the ControlPort, which listens on 127.0.0.1 inside this
+    # container only (operator tool: benchmark/show_circuits.py). Passed as a
+    # file (/run/secrets/tor_control_password), not as an environment
+    # variable, so it does not show up in "docker inspect". Missing or empty
+    # file = ControlPort disabled. Never given to any other container.
+    secrets:
+      - tor_control_password
+    volumes:
+      - tor-data:/var/lib/tor
+    tmpfs:
+      - /tmp:size=8m
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 64
+    networks:
+      egress: {}
+      isolated:
+        ipv4_address: 172.30.0.2
+    healthcheck:
+      # Healthy = a request through the SOCKS port really leaves via a Tor exit.
+      test:
+        - CMD-SHELL
+        - >-
+          curl -sf --max-time 20 --socks5-hostname 172.30.0.2:9050
+          https://check.torproject.org/api/ip | grep -q '"IsTor":true'
+      interval: 60s
+      timeout: 25s
+      retries: 10
+      start_period: 180s
+      # probe more often while Tor bootstraps, so core can start sooner
+      start_interval: 10s
+
+  core:
+    <<: *hardening
+    build:
+      context: ..
+      dockerfile: torxng/Dockerfile
+      additional_contexts:
+        torxng-core: ./core
+    image: torxng/core:latest
+    user: "977:977"
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in torxng/.env (see .env.example)}
+      # (no Tor ControlPort credentials: SearXNG must not be able to control
+      # tor; the tor-only guard refuses a configured outgoing.tor_control)
+      # config directory is mounted read-only: never try to chown it
+      FORCE_OWNERSHIP: "false"
+    volumes:
+      - ./searxng/:/etc/searxng/:ro
+      - core-data:/var/cache/searxng/
+    tmpfs:
+      # SearXNG's SQLite caches (/tmp/sxng_cache_*.db)
+      - /tmp:size=64m
+    mem_limit: 320m
+    cpus: 1.0
+    # one thread per engine request of a search, plus granian threads
+    pids_limit: 256
+    networks:
+      isolated:
+        ipv4_address: 172.30.0.10
+    # No "ports:" on purpose: core is reachable only through frontend.
+    depends_on:
+      tor:
+        # SearXNG refuses to start (RuntimeError: Invalid network configuration)
+        # if using_tor_proxy is set and Tor is not usable yet.
+        condition: service_healthy
+    healthcheck: *searxng-healthcheck
+
+  frontend:
+    <<: *hardening
+    image: docker.io/nginxinc/nginx-unprivileged:1.27-alpine
+    environment:
+      NGINX_ENTRYPOINT_QUIET_LOGS: "1"
+    ports:
+      # loopback only; remote visitors use the onion address
+      - 127.0.0.1:${SEARXNG_PORT:-8080}:8080
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
+    tmpfs:
+      - /tmp:size=16m
+    mem_limit: 32m
+    cpus: 0.25
+    pids_limit: 32
+    networks:
+      egress: {}
+      isolated:
+        # static: target of HiddenServicePort and the only trusted proxy of
+        # core (searxng/limiter.toml)
+        ipv4_address: 172.30.0.3
+    depends_on:
+      core:
+        condition: service_healthy
+    healthcheck:
+      # end-to-end: nginx -> core
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Clearnet baseline for the benchmark ONLY: the stock upstream image
+  # (not the Tor-only core image), same engines/plugins, direct egress. Same
+  # resource limits and granian settings as core, so the benchmark measures
+  # the cost of Tor and not a difference in resources.
+  baseline:
+    <<: *hardening
+    profiles: [baseline]
+    image: docker.io/searxng/searxng:2026.9.25-12f8b6515
+    restart: "no"
+    user: "977:977"
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in torxng/.env (see .env.example)}
+      FORCE_OWNERSHIP: "false"
+      GRANIAN_WORKERS: "1"
+      GRANIAN_BLOCKING_THREADS: "2"
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./searxng-baseline/:/etc/searxng/:ro
+      - baseline-data:/var/cache/searxng/
+    tmpfs:
+      - /tmp:size=64m
+    mem_limit: 320m
+    cpus: 1.0
+    pids_limit: 256
+    networks:
+      egress: {}
+    ports:
+      - 127.0.0.1:${SEARXNG_BASELINE_PORT:-8081}:8080
+    healthcheck: *searxng-healthcheck

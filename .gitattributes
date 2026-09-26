@@ -10,3 +10,13 @@
 *.woff -diff
 *.woff2 -diff
 messages.mo -diff
+
+# torxng/: shell scripts and the torrc template are copied into Linux images
+# and must keep LF line endings on Windows checkouts (core.autocrlf=true)
+torxng/**/*.sh text eol=lf
+torxng/tor/torrc text eol=lf
+
+# Tor-only build: scripts that run in WSL/Linux or are copied into images
+manage text eol=lf
+utils/*.sh text eol=lf
+container/*.sh text eol=lf

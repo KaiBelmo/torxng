@@ -196,7 +196,12 @@ container.test() {
 
         name="searxng-$(head -c 32 /dev/urandom | tr -dc 'A-Za-z0-9' | head -c 16)"
 
-        podman create --name="$name" --rm --timeout=60 --network="host" "$image" >/dev/null
+        # Tor-only build: the image does not start without a Tor SOCKS proxy.
+        # With --network=host that is a Tor daemon of the host (default
+        # 127.0.0.1:9050, override with SEARXNG_TOR_PROXY).
+        podman create --name="$name" --rm --timeout=60 --network="host" \
+            --env="SEARXNG_TOR_PROXY=${SEARXNG_TOR_PROXY:-socks5h://127.0.0.1:9050}" \
+            "$image" >/dev/null
 
         podman start "$name" >/dev/null
         podman logs -f "$name" &

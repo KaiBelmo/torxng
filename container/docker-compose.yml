@@ -1,28 +1,45 @@
-# Read the documentation before using the `docker-compose.yml` file:
-# https://docs.searxng.org/admin/installation-docker.html
+# SearXNG (this fork) - Tor-ONLY container setup.
+#
+# This branch cannot run without Tor: SearXNG refuses to start unless every
+# outgoing request goes through a Tor SOCKS proxy with remote DNS
+# (socks5h://), and it does not start while that proxy is unreachable. The
+# upstream setup (stock image docker.io/searxng/searxng + Valkey, direct
+# internet access) therefore does not apply. This file runs the hardened Tor
+# stack of ../torxng/docker-compose.yml instead, built from this repository:
+#
+#   127.0.0.1:${SEARXNG_PORT:-8080} --> frontend (nginx) --> core (SearXNG, internal network only)
+#   onion service :80 ---(tor)-------> frontend
+#   core --socks5h--> tor --> Tor network --> search engines
+#
+# Read torxng/README.md first. It is the SAME Compose project as
+# torxng/docker-compose.yml (same project name, containers, volumes and onion
+# identity), so both files manage one stack and never run side by side.
+#
+# Before the first start (details: torxng/README.md, "Prerequisites and
+# quick start"):
+#   cp torxng/.env.example torxng/.env      # then set SEARXNG_SECRET
+#   openssl rand -hex 32 > torxng/secrets/tor_control_password
+# Then, from the repository root:
+#   docker compose -f container/docker-compose.yml up -d --build --wait
+#   docker compose -f container/docker-compose.yml exec tor cat /var/lib/tor/searxng/hostname
+#
+# Differences from the upstream file:
+# - no "valkey" service: the limiter is off (all onion visitors share one
+#   client address, the tor container, so per-IP bot detection would lump
+#   them together; nginx does the rate limiting) and the deployment keeps no
+#   persistent state about its visitors. The HTTP 500 of /client<token>.css
+#   without Valkey is fixed in the code.
+# - variables are read from torxng/.env (template torxng/.env.example), not
+#   from container/.env. SEARXNG_HOST no longer exists: the port is always
+#   bound to 127.0.0.1, remote visitors use the onion address.
+# - "docker compose ... down -v" deletes the tor-data volume, i.e. the onion
+#   service's identity key (a new .onion address on the next start).
+# - the included file also defines the service "baseline" (compose profile
+#   "baseline", never started by default): the STOCK upstream image on the
+#   clearnet, used only as the reference of the benchmark. It is not
+#   built from this branch.
 
-name: searxng
+name: torxng
 
-services:
-  core:
-    container_name: searxng-core
-    image: docker.io/searxng/searxng:${SEARXNG_VERSION:-latest}
-    restart: always
-    ports:
-      - ${SEARXNG_HOST:+${SEARXNG_HOST}:}${SEARXNG_PORT:-8080}:${SEARXNG_PORT:-8080}
-    env_file: ./.env
-    volumes:
-      - ./core-config/:/etc/searxng/:Z
-      - core-data:/var/cache/searxng/
-
-  valkey:
-    container_name: searxng-valkey
-    image: docker.io/valkey/valkey:9-alpine
-    command: valkey-server --save 30 1 --loglevel warning
-    restart: always
-    volumes:
-      - valkey-data:/data/
-
-volumes:
-  core-data:
-  valkey-data:
+include:
+  - path: ../torxng/docker-compose.yml

@@ -1,0 +1,58 @@
+# torrc template for the TorXNG stack. tor-entrypoint.sh copies this file to
+# /tmp (tmpfs, the root filesystem is read-only) and appends:
+#   - HiddenServicePoWDefensesEnabled 1, if this tor build has the "pow" module
+#   - ControlPort 127.0.0.1:9051 + HashedControlPassword, if a password is
+#     configured in the Compose secret /run/secrets/tor_control_password
+#     (operator access from inside this container only, see
+#     tor-entrypoint.sh)
+#
+# Static addresses on the internal "isolated" network (docker-compose.yml):
+#   172.30.0.2  = this container (SOCKS port)
+#   172.30.0.3  = frontend (nginx), target of the onion service
+#   172.30.0.10 = core (SearXNG), the only SOCKS client
+
+DataDirectory /var/lib/tor
+Log notice stdout
+
+# Pure client + onion service: never act as a relay, bridge or directory
+# cache (no ORPort/DirPort, no extra traffic or exposure on a small PC).
+ClientOnly 1
+
+# Reduce writes to the data directory (state file, cached descriptors):
+# fewer disk writes, better for SD cards / slow disks.
+AvoidDiskWrites 1
+
+# Upper bound for memory used by cell queues and buffers before tor's OOM
+# handler starts closing circuits (default: 3/4 of the RAM it sees, i.e. the
+# host's RAM, not the container limit of 128 MB). Tor 0.4.9 enforces a 256 MB
+# minimum only for relays; for a client 64 MB is accepted without warning.
+MaxMemInQueues 64 MB
+
+# SOCKS5 proxy used by SearXNG (socks5h://tor:9050).
+# IsolateSOCKSAuth (also the default) is spelled out because SearXNG's
+# tor_circuits setting relies on it: every distinct SOCKS username/password
+# pair gets its own circuit.
+SocksPort 172.30.0.2:9050 IsolateSOCKSAuth
+
+# Reject SOCKS requests that carry a raw IP address instead of a host name
+# (SOCKS4, or SOCKS5 with a locally resolved address). A client that resolved
+# DNS itself - a DNS leak - cannot use this proxy at all.
+SafeSocks 1
+
+# Only clients on the isolated network may use the SOCKS port.
+SocksPolicy accept 172.30.0.0/24
+SocksPolicy reject *
+
+# v3 onion service. Virtual port 80 goes to the nginx frontend, so onion and
+# local visitors get the same security headers and rate limits.
+# HiddenServicePort needs an IP address (or unix socket), not a host name.
+HiddenServiceDir /var/lib/tor/searxng/
+HiddenServiceVersion 3
+HiddenServicePort 80 172.30.0.3:8080
+# DoS protection of the onion service:
+# - rate limiting of INTRODUCE2 cells at the introduction points
+HiddenServiceEnableIntroDoSDefense 1
+# - at most 32 concurrent streams per rendezvous circuit, circuits that ask
+#   for more are closed (a browser needs a handful)
+HiddenServiceMaxStreams 32
+HiddenServiceMaxStreamsCloseCircuit 1

@@ -48,6 +48,7 @@ PATH="${PY_ENV}/bin:${REPO_ROOT}/node_modules/.bin:${GOROOT}/bin:${GOPATH}/bin:$
 
 PYOBJECTS="searx"
 PY_SETUP_EXTRAS='[test]'
+TOR_PROXY_DEFAULT="socks5h://127.0.0.1:9050"
 GECKODRIVER_VERSION="v0.37.0"
 # SPHINXOPTS=
 BLACK_OPTIONS=("--target-version" "py311" "--line-length" "120" "--skip-string-normalization")
@@ -74,7 +75,8 @@ help() {
     nvm.help
     cat <<EOF
 webapp.:
-  run       : run developer instance
+  run       : run developer instance (Tor-only: needs the Tor SOCKS proxy
+              \$SEARXNG_TOR_PROXY, default ${TOR_PROXY_DEFAULT})
 docs.:
   html      : build HTML documentation
   live      : autobuild HTML documentation while editing
@@ -112,6 +114,7 @@ dev.:
   env: enter developer environment (or exec a command in)
 environment ...
   SEARXNG_VALKEY_URL : ${SEARXNG_VALKEY_URL}
+  SEARXNG_TOR_PROXY  : ${SEARXNG_TOR_PROXY:-${TOR_PROXY_DEFAULT} (default)}
 EOF
 }
 
@@ -138,8 +141,58 @@ fi
 # needed by sphinx-docs
 export DOCS_BUILD
 
+# Tor-only build: SearXNG refuses to start without a reachable Tor SOCKS proxy
+# (socks5h://).  webapp.run probes the proxy of SEARXNG_TOR_PROXY (default: the
+# built-in socks5h://127.0.0.1:9050 of searx/settings.yml) before granian
+# starts, so a missing Tor daemon gives a clear message instead of SearXNG's
+# "Invalid network configuration".
+webapp.tor_check() {
+    # set but empty is an error (as in SearXNG), hence "-" and not ":-"
+    local proxy="${SEARXNG_TOR_PROXY-${TOR_PROXY_DEFAULT}}"
+    local hostport host port
+
+    case "${proxy}" in
+        socks5h://*) ;;
+        *)
+            err_msg "SEARXNG_TOR_PROXY must be a socks5h:// URL (Tor with remote DNS), e.g. ${TOR_PROXY_DEFAULT}"
+            return 1
+            ;;
+    esac
+    hostport="${proxy#socks5h://}"
+    hostport="${hostport##*@}"
+    hostport="${hostport%%/*}"
+    port="${hostport##*:}"
+    host="${hostport%:*}"
+    host="${host#[}"
+    host="${host%]}"
+    if [ -z "${host}" ] || [ "${port}" = "${hostport}" ] || [[ ! "${port}" =~ ^[0-9]+$ ]]; then
+        err_msg "SEARXNG_TOR_PROXY must look like socks5h://host:port, e.g. ${TOR_PROXY_DEFAULT}"
+        return 1
+    fi
+
+    # shellcheck disable=SC2016
+    local probe=(bash -c 'exec 3<>"/dev/tcp/$1/$2"' _ "${host}" "${port}")
+    if command -v timeout &>/dev/null; then
+        probe=(timeout 3 "${probe[@]}")
+    fi
+    if ! "${probe[@]}" 2>/dev/null; then
+        err_msg "Tor-only build: no Tor SOCKS proxy at ${hostport}"
+        cat >&2 <<EOF
+  SearXNG sends every request through Tor and does not start without it.
+  Either start the Tor daemon (listens on 127.0.0.1:9050), e.g.:
+      sudo apt install tor && sudo systemctl start tor
+  or use the SOCKS port of a running Tor Browser:
+      SEARXNG_TOR_PROXY=socks5h://127.0.0.1:9150 make run
+EOF
+        return 1
+    fi
+    info_msg "Tor SOCKS proxy ${hostport} is reachable"
+}
+
 webapp.run() {
     local parent_proc="$$"
+
+    webapp.tor_check || return
     (
         if [ "${LIVE_THEME}" ]; then
             (themes.live "${LIVE_THEME}")

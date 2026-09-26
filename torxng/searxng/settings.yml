@@ -1,0 +1,226 @@
+# SearXNG settings - Tor profile (TorXNG deployment)
+#
+# Merged on top of searx/settings.yml (use_default_settings), so only the
+# differences from upstream are listed here. Mounted read-only at
+# /etc/searxng/settings.yml in the "core" container.
+#
+# Secrets are NOT stored here:
+#   server.secret_key <- env SEARXNG_SECRET
+
+use_default_settings:
+  engines:
+    # Small, fixed engine set, measured over Tor (torxng/README.md, "Engine
+    # selection"): an engine that hangs delays EVERY result page up to its
+    # timeout (16 s over Tor), and every engine costs one Tor request per
+    # search. Kept: engines that answered through most circuits; failures
+    # that come back quickly (CAPTCHA, 403) are acceptable because the engine
+    # is suspended for 1-5 minutes and retried through another circuit.
+    # Left out (never or rarely answered over Tor): duckduckgo (access
+    # denied), brave (HTTP 429), qwant (CAPTCHA), mojeek (timeout), yahoo,
+    # yep, xprivo, tusksearch, privacywall, dogpile, seznam, swisscows.
+    # Never add radio_browser (resolves host names locally, outside Tor) or
+    # zlibrary (verify=False).
+    keep_only:
+      # general
+      - bing
+      - google
+      - startpage
+      - wikipedia
+      # images
+      - bing images
+      - wikicommons.images
+      # onion services (category "onions", only loaded when Tor is used)
+      - ahmia
+      - torch
+
+general:
+  instance_name: "TorXNG"
+  # /stats is part of the evaluation (per-engine response times and errors).
+  # Metrics are kept in memory only and are anonymous (no queries, no IPs).
+  enable_metrics: true
+
+search:
+  # Autocomplete would send every keystroke to a third party (through Tor, but
+  # still a stream of partial queries); off by default for privacy.
+  autocomplete: ""
+  # json: needed by the reproducible evaluation (torxng/benchmark). Trade-off:
+  # it also makes scripted use easier; nginx rate-limits /search (2 r/s per
+  # client, and globally for all onion visitors) so it cannot be used to
+  # hammer the Tor exits.
+  formats:
+    - html
+    - json
+  # At most 5 result pages per query (engines with their own lower limit keep
+  # it): deep paging is rarely useful and costs a Tor request per engine.
+  max_page: 5
+  # Engine errors (timeouts, connection errors) are common over Tor and are
+  # usually transient: the next request uses another circuit, often another
+  # exit. Keep the error back-off short.
+  ban_time_on_fail: 5
+  max_ban_time_on_fail: 60
+  # Upstream suspends an engine for up to 15 days after a Cloudflare CAPTCHA
+  # (cf_SearxEngineCaptcha: 1296000). Over Tor, CAPTCHAs and access-denied
+  # pages are triggered by a single "bad" exit IP, and the next request goes
+  # out through a different circuit (outgoing.tor_circuits) that may be
+  # accepted. A long suspension would disable an engine for everybody because
+  # of one exit, so all suspensions are reduced to 1-5 minutes.
+  suspended_times:
+    SearxEngineAccessDenied: 60
+    SearxEngineCaptcha: 120
+    SearxEngineTooManyRequests: 60
+    cf_SearxEngineCaptcha: 300
+    cf_SearxEngineAccessDenied: 300
+    recaptcha_SearxEngineCaptcha: 300
+
+server:
+  # Placeholder, replaced by env SEARXNG_SECRET (SearXNG refuses to start with
+  # this value outside debug mode).
+  secret_key: "ultrasecretkey"
+  # The limiter must stay off: every onion visitor has the same client
+  # address (the tor container, 172.30.0.2), so SearXNG's per-IP bot
+  # detection would lump all onion users together. It (and public_instance)
+  # would also need Valkey, which this deployment deliberately does not run
+  # (no persistent state). Rate limiting is done by nginx (frontend).
+  limiter: false
+  public_instance: false
+  # Result thumbnails are fetched by SearXNG (through Tor) instead of by the
+  # browser, so image hosts never see the visitor's IP or browser fingerprint.
+  image_proxy: true
+  # POST keeps the query out of URLs, browser history and Referer headers.
+  method: "POST"
+  # Only used by Werkzeug's development server (searx/flaskfix.py); granian
+  # speaks HTTP/1.1 anyway. Set for consistency with the nginx upstream.
+  http_protocol_version: "1.1"
+
+ui:
+  # Page titles end up in browser history; do not put the query there.
+  query_in_title: false
+
+preferences:
+  # Privacy-relevant preferences cannot be changed by visitors:
+  # - autocomplete: would send every keystroke to a third party
+  # - image_proxy: without it the browser would load thumbnails directly from
+  #   the image hosts (visitor IP and fingerprint exposed; also blocked by
+  #   the CSP img-src 'self' of the frontend)
+  # - method: POST keeps queries out of URLs and browser history
+  # - query_in_title: page titles end up in browser history
+  lock:
+    - autocomplete
+    - image_proxy
+    - method
+    - query_in_title
+
+outgoing:
+  # Tor adds several round trips per request (3-hop circuit, exit DNS
+  # resolution, TLS to the engine). Base timeout 6 s; when using_tor_proxy is
+  # on, extra_proxy_timeout is added to every engine timeout (6 + 10 = 16 s).
+  request_timeout: 6.0
+  max_request_timeout: 30.0
+  extra_proxy_timeout: 10.0
+  # A handful of engines only; a large pool just keeps idle Tor streams open.
+  pool_connections: 16
+  # HTTP/2 multiplexes requests to the same engine over one Tor stream.
+  enable_http2: true
+  # TLS certificates of the engines are always verified: a malicious exit
+  # relay cannot read or modify the traffic without a trusted certificate.
+  verify: true
+  # One retry: SearXNG takes the NEXT proxy URL of the round robin for the
+  # retry, i.e. a different Tor circuit (and usually a different exit).
+  retries: 1
+  # socks5h (not socks5): host names are resolved by the Tor exit, so the
+  # container never performs DNS lookups for engine domains (no DNS leak).
+  # "tor" is resolved by Docker's embedded DNS on the isolated network.
+  # The built-in default of this branch, socks5h://127.0.0.1:9050, is meant
+  # for a local Tor daemon ("make run"); inside core it would point at the
+  # container itself, so the tor-only guard refuses loopback proxies. The
+  # proxy is kept here instead of in the environment (SEARXNG_TOR_PROXY) so
+  # that this file alone describes the deployment and is what the guard (and
+  # its tests) validate.
+  proxies:
+    all://:
+      - socks5h://tor:9050
+  # Applies to every network (default, per-engine, image_proxy). At startup
+  # SearXNG verifies through check.torproject.org that the proxy really exits
+  # via Tor and refuses to start otherwise (fail-closed). true is also the
+  # built-in default of this branch, and false refuses to start (Tor-only
+  # build); it is spelled out so that this file is complete on its own.
+  using_tor_proxy: true
+  # Each socks5h:// proxy is expanded into N URLs with distinct SOCKS
+  # credentials. With IsolateSOCKSAuth (torrc) Tor puts each credential pair
+  # on its own circuit, and requests are distributed round robin, so
+  # consecutive searches do not all share one exit IP. Env override:
+  # SEARXNG_TOR_CIRCUITS.
+  tor_circuits: 4
+  # ControlPort access is DISABLED for SearXNG (host ""): the ControlPort
+  # grants full control over tor, and showing guard/middle relays on a web
+  # page would enable guard discovery against the onion service. The
+  # tor_circuit plugin therefore shows only the exit side of each circuit.
+  # The operator can see full paths with torxng/benchmark/show_circuits.py.
+  # The tor-only guard refuses to start if a host is configured here.
+  tor_control:
+    host: ""
+
+# With use_default_settings, this list REPLACES the upstream plugin list, so
+# every wanted plugin is listed (upstream defaults + tor_check + tor_circuit).
+plugins:
+  searx.plugins.calculator.SXNGPlugin:
+    active: true
+  searx.plugins.infinite_scroll.SXNGPlugin:
+    active: false
+  searx.plugins.hash_plugin.SXNGPlugin:
+    active: true
+  # answers "ip" / "user-agent": shows what SearXNG itself sees of the visitor
+  # (for onion visitors: only the address of the tor container)
+  searx.plugins.self_info.SXNGPlugin:
+    active: true
+  searx.plugins.unit_converter.SXNGPlugin:
+    active: true
+  # removes onion results that are on Ahmia's abuse blacklist
+  searx.plugins.ahmia_filter.SXNGPlugin:
+    active: true
+  searx.plugins.hostnames.SXNGPlugin:
+    active: true
+  searx.plugins.time_zone.SXNGPlugin:
+    active: true
+  searx.plugins.oa_doi_rewrite.SXNGPlugin:
+    active: false
+  # answers "tor-check": is the visitor's IP a Tor exit? ("not applicable" for
+  # onion visitors, who arrive from a private address)
+  searx.plugins.tor_check.SXNGPlugin:
+    active: true
+  # answers "circuit": exit IP (and exit relay) of every pooled circuit;
+  # guard and middle relays are never shown (guard discovery), see
+  # outgoing.tor_control
+  searx.plugins.tor_circuit.SXNGPlugin:
+    active: true
+  # strips tracking parameters (utm_* etc.) from result URLs; its ClearURLs
+  # rule download at startup goes through Tor as well
+  searx.plugins.tracker_url_remover.SXNGPlugin:
+    active: true
+
+# Tabs: web, images and onion services (the latter only exist over Tor).
+categories_as_tabs:
+  general:
+  images:
+  onions:
+
+# Merged by name into the upstream engine definitions.
+engines:
+  # disabled upstream (opt-in); answered through 4 of 5 probe rounds over Tor
+  - name: bing
+    disabled: false
+  # disabled upstream (opt-in); answered through 4 of 5 probe rounds over Tor
+  # (the failure was a fast CAPTCHA)
+  - name: google
+    disabled: false
+  # inactive upstream because it may answer with a proof-of-work CAPTCHA;
+  # over Tor it answered through 4 of 5 probe rounds (the failure was a fast
+  # CAPTCHA)
+  - name: startpage
+    inactive: false
+  # Onion search engines: 6 relays instead of 3 (rendezvous circuit) plus the
+  # rendezvous setup, so they need a longer timeout (20 s + extra_proxy_timeout).
+  - name: torch
+    timeout: 20.0
+  - name: ahmia
+    timeout: 20.0

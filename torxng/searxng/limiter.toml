@@ -1,0 +1,59 @@
+# limiter.toml - Tor profile (TorXNG deployment)
+#
+# Copy of searx/limiter.toml. The limiter itself is OFF (server.limiter:
+# false in settings.yml; rate limiting is done by nginx). This file only
+# matters for botdetection's client IP logic (e.g. the self_info "ip" answer):
+# requests from trusted_proxies may set the client IP via X-Forwarded-For /
+# X-Real-IP.
+#
+# Change against upstream: the ONLY trusted proxy is the nginx frontend
+# (172.30.0.3). Every request reaches core through it (local and onion
+# visitors), and nginx SETS X-Forwarded-For to the address it sees, so
+# clients cannot spoof it; onion visitors show up as 172.30.0.2 (the tor
+# container). Loopback is not trusted either: nothing but the healthcheck
+# connects to core from inside its own container.
+
+[botdetection]
+
+# The prefix defines the number of leading bits in an address that are compared
+# to determine whether or not an address is part of a (client) network.
+
+ipv4_prefix = 32
+ipv6_prefix = 48
+
+# If the request IP is in trusted_proxies list, the client IP address is
+# extracted from the X-Forwarded-For and X-Real-IP headers. This should be
+# used if SearXNG is behind a reverse proxy or load balancer.
+
+trusted_proxies = [
+  '172.30.0.3',  # nginx frontend on the isolated network
+]
+
+[botdetection.ip_limit]
+
+# To get unlimited access in a local network, by default link-local addresses
+# (networks) are not monitored by the ip_limit
+filter_link_local = false
+
+# activate link_token method in the ip_limit method
+link_token = false
+
+[botdetection.ip_lists]
+
+# In the limiter, the ip_lists method has priority over all other methods -> if
+# an IP is in the pass_ip list, it has unrestricted access and it is also not
+# checked if e.g. the "user agent" suggests a bot (e.g. curl).
+
+block_ip = [
+  # '93.184.216.34',  # IPv4 of example.org
+  # '257.1.1.1',      # invalid IP --> will be ignored, logged in ERROR class
+]
+
+pass_ip = [
+  # '192.168.0.0/16',      # IPv4 private network
+  # 'fe80::/10'            # IPv6 linklocal / wins over botdetection.ip_limit.filter_link_local
+]
+
+# Activate passlist of (hardcoded) IPs from the SearXNG organization,
+# e.g. `check.searx.space`.
+pass_searxng_org = true
